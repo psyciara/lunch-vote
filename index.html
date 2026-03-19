@@ -143,6 +143,23 @@ let unsubscribe = null;
 let addrError = "";
 let loadingAddr = false;
 let listPage = 1;
+let searchQuery = "";
+
+// 오늘 투표한 식당 ID (localStorage 기반)
+function getVotedToday() {
+  try {
+    const data = JSON.parse(localStorage.getItem("voted_" + TODAY) || "[]");
+    return new Set(data);
+  } catch { return new Set(); }
+}
+
+function addVotedToday(id) {
+  try {
+    const voted = getVotedToday();
+    voted.add(id);
+    localStorage.setItem("voted_" + TODAY, JSON.stringify([...voted]));
+  } catch {}
+}
 
 // ── 주소 검색 ─────────────────────────────────────────
 function handleSearch() {
@@ -252,7 +269,10 @@ async function saveSession() {
 }
 
 async function castVote(id) {
+  const voted = getVotedToday();
+  if (voted.has(String(id))) return;
   votes[id] = (votes[id] || 0) + 1;
+  addVotedToday(String(id));
   await saveSession();
 }
 
@@ -290,7 +310,12 @@ function togglePick(id) {
 }
 
 function getPool() {
-  return catFilter === "전체" ? restaurants : restaurants.filter(r => r.category === catFilter);
+  let pool = catFilter === "전체" ? restaurants : restaurants.filter(r => r.category === catFilter);
+  if (searchQuery.trim()) {
+    const q = searchQuery.trim().toLowerCase();
+    pool = pool.filter(r => r.name.toLowerCase().includes(q));
+  }
+  return pool;
 }
 
 function showTab(tab) { currentTab = tab; render(); }
@@ -303,6 +328,7 @@ window.doReset = resetSession;
 window.togglePick = togglePick;
 window.confirmPick = confirmPick;
 window.setListPage = (p) => { listPage = p; render(); };
+window.setSearch = (q) => { searchQuery = q; listPage = 1; render(); };
 window.goStart = () => {
   screen = "start"; restaurants = []; candidates = []; votes = {};
   spinDone = false; selected = new Set();
@@ -405,6 +431,9 @@ function render() {
       <button class="pick-confirm" ${cnt !== 3 ? "disabled" : ""} onclick="confirmPick()">
         ${cnt === 3 ? "선택 완료 → 투표 시작" : `3개를 선택해주세요 (${cnt}/3)`}
       </button>
+      <input type="text" placeholder="식당 이름 검색..." value="${searchQuery}"
+        oninput="setSearch(this.value)"
+        style="width:100%;padding:9px 12px;font-size:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px;outline:none;">
       <div class="filter-row">
         ${CATEGORIES.map(cat => `<button class="${catFilter === cat ? "active" : ""}" onclick="setFilter('${cat}')">${cat}</button>`).join("")}
       </div>
@@ -427,6 +456,7 @@ function render() {
           const v = votes[r.id] || 0;
           const pct = totalVotes > 0 ? Math.round(v / totalVotes * 100) : 0;
           const isTop = i === 0 && v > 0;
+          const alreadyVoted = getVotedToday().has(String(r.id));
           return `
             <div class="vote-card ${isTop ? "top" : ""}">
               ${isTop ? '<div class="badge">현재 1위</div>' : ""}
@@ -436,7 +466,10 @@ function render() {
                   <div class="name">${r.name}</div>
                   <div class="sub">${r.category} · ${r.distance}m</div>
                 </div>
-                <button class="vote-btn" onclick="doVote('${r.id}')">👍 ${v}표</button>
+                <button class="vote-btn" onclick="doVote('${r.id}')" ${alreadyVoted ? "disabled" : ""}
+                  style="${alreadyVoted ? "background:#9FE1CB;cursor:not-allowed;" : ""}">
+                  ${alreadyVoted ? "✓ 투표함" : `👍 ${v}표`}
+                </button>
               </div>
               <div class="bar-wrap"><div class="bar-fill" style="width:${totalVotes > 0 ? Math.round(v / maxV * 100) : 0}%"></div></div>
               ${totalVotes > 0 ? `<div class="pct">${pct}%</div>` : ""}
