@@ -328,7 +328,14 @@ window.doReset = resetSession;
 window.togglePick = togglePick;
 window.confirmPick = confirmPick;
 window.setListPage = (p) => { listPage = p; render(); };
-window.setSearch = (q) => { searchQuery = q; listPage = 1; render(); };
+window.setSearch = (q) => {
+  searchQuery = q;
+  listPage = 1;
+  const cursorPos = document.getElementById("search-input")?.selectionStart;
+  render();
+  const el = document.getElementById("search-input");
+  if (el) { el.focus(); el.setSelectionRange(cursorPos, cursorPos); }
+};
 window.goStart = () => {
   screen = "start"; restaurants = []; candidates = []; votes = {};
   spinDone = false; selected = new Set();
@@ -431,7 +438,7 @@ function render() {
       <button class="pick-confirm" ${cnt !== 3 ? "disabled" : ""} onclick="confirmPick()">
         ${cnt === 3 ? "선택 완료 → 투표 시작" : `3개를 선택해주세요 (${cnt}/3)`}
       </button>
-      <input type="text" placeholder="식당 이름 검색..." value="${searchQuery}"
+      <input id="search-input" type="text" placeholder="식당 이름 검색..." value="${searchQuery}"
         oninput="setSearch(this.value)"
         style="width:100%;padding:9px 12px;font-size:13px;border:1px solid #ddd;border-radius:10px;margin-bottom:10px;outline:none;">
       <div class="filter-row">
