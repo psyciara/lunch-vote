@@ -26,13 +26,6 @@
   .tabs button { flex: 1; padding: 11px 0; font-size: 13px; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: #888; }
   .tabs button.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 600; }
   .content { padding: 20px; }
-
-  /* 모드 선택 */
-  .mode-row { display: flex; gap: 8px; margin-bottom: 16px; }
-  .mode-btn { flex: 1; padding: 10px; font-size: 13px; font-weight: 500; border-radius: 10px; border: 1.5px solid #ddd; background: none; cursor: pointer; color: #666; }
-  .mode-btn.active { border-color: #1D9E75; color: #1D9E75; background: #f0faf6; }
-
-  /* 룰렛/직접선택 결과 박스 */
   .result-box { background: #f0faf6; border: 1.5px solid #1D9E75; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
   .result-box .label { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #1D9E75; }
   .result-item { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -42,16 +35,11 @@
   .result-actions { display: flex; gap: 8px; margin-top: 12px; }
   .go-vote { flex: 1; padding: 9px; font-size: 13px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
   .re-pick { flex: 1; padding: 9px; font-size: 13px; background: none; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; color: #666; }
-
   .spin-btn { width: 100%; padding: 13px; font-size: 15px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 20px; }
   .spin-btn:disabled { background: #9FE1CB; cursor: not-allowed; }
-
-  /* 필터 */
   .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .filter-row button { font-size: 12px; padding: 5px 13px; border-radius: 999px; border: 1px solid #ddd; background: none; cursor: pointer; color: #666; }
   .filter-row button.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
-
-  /* 직접 선택 */
   .pick-hint { font-size: 13px; color: #888; margin-bottom: 10px; }
   .pick-hint span { color: #1D9E75; font-weight: 600; }
   .pick-card { display: flex; align-items: center; gap: 12px; border: 1.5px solid #eee; border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
@@ -62,10 +50,8 @@
   .pick-card .emoji { font-size: 22px; }
   .pick-card .info .name { font-size: 13px; font-weight: 500; }
   .pick-card .info .sub { font-size: 11px; color: #888; margin-top: 1px; }
-  .pick-confirm { width: 100%; margin-top: 4px; padding: 13px; font-size: 14px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
+  .pick-confirm { width: 100%; margin-bottom: 16px; padding: 13px; font-size: 14px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
   .pick-confirm:disabled { background: #9FE1CB; cursor: not-allowed; }
-
-  /* 투표 */
   .vote-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .vote-header .title { font-size: 14px; font-weight: 600; }
   .vote-header .total { font-size: 12px; color: #888; }
@@ -83,19 +69,11 @@
   .pct { font-size: 11px; color: #888; text-align: right; margin-top: 3px; }
   .empty { text-align: center; color: #888; font-size: 14px; padding: 3rem 0; line-height: 2; }
   .reset-btn { width: 100%; margin-top: 8px; padding: 10px; font-size: 13px; background: none; border: 1px solid #ddd; border-radius: 10px; cursor: pointer; color: #888; }
-
-  /* 목록 */
-  .list-card { display: flex; align-items: center; gap: 12px; border: 1px solid #eee; border-radius: 12px; padding: 13px; margin-bottom: 8px; }
-  .list-card .emoji { font-size: 24px; min-width: 32px; text-align: center; }
-  .list-card .info .name { font-size: 14px; font-weight: 500; }
-  .list-card .info .sub { font-size: 12px; color: #888; margin-top: 2px; }
-  .list-card .info .addr { font-size: 11px; color: #aaa; margin-top: 1px; }
-  .list-card a { font-size: 11px; color: #1D9E75; text-decoration: none; display: block; margin-top: 3px; }
+  .list-count { font-size: 12px; color: #888; margin-bottom: 12px; }
   .page-row { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap; }
   .page-row button { padding: 6px 12px; border: 1px solid #ddd; border-radius: 8px; background: none; cursor: pointer; color: #666; font-size: 13px; }
   .page-row button.active { background: #1D9E75; border-color: #1D9E75; color: #fff; }
   .page-row button:disabled { opacity: 0.4; cursor: not-allowed; }
-  .list-count { font-size: 12px; color: #888; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -118,29 +96,36 @@ const db = getFirestore(fbApp);
 const TODAY = new Date().toISOString().slice(0, 10);
 const VOTE_DOC = `votes_${TODAY}`;
 
-const CATEGORIES = ["전체", "한식", "일식", "중식", "양식", "아시안", "버거·패스트푸드", "치킨", "분식", "기타"];
+const CATEGORIES = ["전체", "한식", "일식", "중식", "양식", "분식", "치킨", "버거", "패스트푸드", "아시안", "기타"];
 const LIST_PER_PAGE = 15;
-
-function getEmoji(cat) {
-  if (!cat) return "🍽️";
-  if (cat.includes("한식") || cat.includes("분식")) return "🍱";
-  if (cat.includes("일식") || cat.includes("초밥")) return "🍣";
-  if (cat.includes("중식")) return "🥡";
-  if (cat.includes("양식") || cat.includes("이탈리아") || cat.includes("스테이크")) return "🍝";
-  if (cat.includes("패스트푸드") || cat.includes("햄버거")) return "🍔";
-  if (cat.includes("치킨")) return "🍗";
-  return "🍽️";
-}
 
 function getCatLabel(fullCat) {
   if (!fullCat) return "기타";
-  if (fullCat.includes("한식") || fullCat.includes("분식")) return "한식";
-  if (fullCat.includes("일식") || fullCat.includes("초밥")) return "일식";
-  if (fullCat.includes("중식")) return "중식";
-  if (fullCat.includes("양식") || fullCat.includes("이탈리아") || fullCat.includes("스테이크")) return "양식";
-  if (fullCat.includes("패스트푸드") || fullCat.includes("햄버거")) return "버거·패스트푸드";
+  const excludeKeywords = ["아이스크림", "제과,베이커리", "카페", "커피"];
+  if (excludeKeywords.some(k => fullCat.includes(k))) return null;
   if (fullCat.includes("치킨")) return "치킨";
+  if (fullCat.includes("분식") || fullCat.includes("김밥") || fullCat.includes("떡볶이")) return "분식";
+  if (fullCat.includes("햄버거") || fullCat.includes("버거")) return "버거";
+  if (fullCat.includes("패스트푸드")) return "패스트푸드";
+  if (fullCat.includes("초밥") || fullCat.includes("라멘") || fullCat.includes("돈가스") || fullCat.includes("우동") || fullCat.includes("일식")) return "일식";
+  if (fullCat.includes("중식") || fullCat.includes("중국요리")) return "중식";
+  if (fullCat.includes("이탈리안") || fullCat.includes("스테이크") || fullCat.includes("샌드위치") || fullCat.includes("양식") || fullCat.includes("멕시칸")) return "양식";
+  if (fullCat.includes("베트남") || fullCat.includes("태국") || fullCat.includes("인도") || fullCat.includes("아시아")) return "아시안";
+  if (fullCat.includes("한식")) return "한식";
   return "기타";
+}
+
+function getEmoji(cat) {
+  if (cat === "치킨") return "🍗";
+  if (cat === "분식") return "🍜";
+  if (cat === "버거") return "🍔";
+  if (cat === "패스트푸드") return "🍟";
+  if (cat === "일식") return "🍣";
+  if (cat === "중식") return "🥡";
+  if (cat === "양식") return "🍝";
+  if (cat === "아시안") return "🍛";
+  if (cat === "한식") return "🍱";
+  return "🍽️";
 }
 
 // ── 상태 ──────────────────────────────────────────────
@@ -152,8 +137,7 @@ let votes = {};
 let spinning = false;
 let spinDone = false;
 let catFilter = "전체";
-let currentTab = "main"; // main | vote
-let pickMode = "roulette";
+let currentTab = "main";
 let selected = new Set();
 let unsubscribe = null;
 let addrError = "";
@@ -178,11 +162,15 @@ function handleSearch() {
   });
 }
 
-// ── 식당 불러오기 (구역 분할로 45개 제한 우회) ────────
+// ── 식당 불러오기 (구역 분할) ─────────────────────────
 function loadRestaurants(lat, lng) {
+  const offsets = [[0,0],[0.004,0],[-0.004,0],[0,0.006],[0,-0.006]];
+  let allData = [];
+  let done = 0;
+
   const toItem = (p) => {
     const cat = getCatLabel(p.category_name);
-    if (cat === null) return null; // 비음식점 제외
+    if (cat === null) return null;
     return {
       id: p.id, name: p.place_name,
       category: cat,
@@ -196,19 +184,6 @@ function loadRestaurants(lat, lng) {
     };
   };
 
-  // 중심점 + 상하좌우 4개 오프셋 지점으로 나눠서 검색
-  // 위도 0.005 ≈ 550m, 경도 0.006 ≈ 500m
-  const offsets = [
-    [0, 0],
-    [0.004, 0],
-    [-0.004, 0],
-    [0, 0.006],
-    [0, -0.006],
-  ];
-
-  let allData = [];
-  let done = 0;
-
   offsets.forEach(([dlat, dlng]) => {
     const center = new kakao.maps.LatLng(lat + dlat, lng + dlng);
     const ps = new kakao.maps.services.Places();
@@ -216,44 +191,24 @@ function loadRestaurants(lat, lng) {
 
     function callback(data, status, pagination) {
       if (status === kakao.maps.services.Status.OK) {
-        allData = allData.concat(data.map(p => toItem(p)));
+        allData = allData.concat(data.map(toItem).filter(Boolean));
         if (pagination.hasNextPage && currentPage < 3) {
           currentPage++;
-          ps.categorySearch("FD6", callback, {
-            location: center,
-            radius: 800,
-            sort: kakao.maps.services.SortBy.DISTANCE,
-            page: currentPage
-          });
-        } else {
-          checkDone();
-        }
-      } else {
-        checkDone();
-      }
+          ps.categorySearch("FD6", callback, { location: center, radius: 800, sort: kakao.maps.services.SortBy.DISTANCE, page: currentPage });
+        } else { checkDone(); }
+      } else { checkDone(); }
     }
 
-    ps.categorySearch("FD6", callback, {
-      location: center,
-      radius: 800,
-      sort: kakao.maps.services.SortBy.DISTANCE,
-      page: 1
-    });
+    ps.categorySearch("FD6", callback, { location: center, radius: 800, sort: kakao.maps.services.SortBy.DISTANCE, page: 1 });
   });
 
   function checkDone() {
     done++;
     if (done < offsets.length) return;
-
     const seen = new Set();
     restaurants = allData
-      .filter(r => {
-        if (seen.has(r.id)) return false;
-        seen.add(r.id);
-        return true;
-      })
+      .filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; })
       .map(r => {
-        // 실제 중심점까지 거리 재계산 (단순 피타고라스 근사)
         const dLat = (r._lat - lat) * 111000;
         const dLng = (r._lng - lng) * 111000 * Math.cos(lat * Math.PI / 180);
         r.distance = Math.round(Math.sqrt(dLat * dLat + dLng * dLng));
@@ -261,7 +216,6 @@ function loadRestaurants(lat, lng) {
       })
       .filter(r => r.distance <= 400)
       .sort((a, b) => a.distance - b.distance);
-
     loadingAddr = false;
     screen = "main";
     subscribeVotes();
@@ -274,7 +228,6 @@ function subscribeVotes() {
   unsubscribe = onSnapshot(doc(db, "sessions", VOTE_DOC), (snap) => {
     if (snap.exists()) {
       const data = snap.data();
-      // 저장된 날짜가 오늘과 다르면 무시
       const savedDate = (data.updatedAt || "").slice(0, 10);
       if (savedDate !== TODAY) {
         votes = {}; candidates = []; spinDone = false;
@@ -322,7 +275,6 @@ function spinRoulette() {
   }, 800);
 }
 
-// ── 직접 선택 ─────────────────────────────────────────
 async function confirmPick() {
   if (selected.size !== 3) return;
   candidates = [...selected].map(id => restaurants.find(r => r.id == id)).filter(Boolean);
@@ -341,15 +293,10 @@ function getPool() {
   return catFilter === "전체" ? restaurants : restaurants.filter(r => r.category === catFilter);
 }
 
-// ── 탭/네비 ───────────────────────────────────────────
-function showTab(tab) {
-  currentTab = tab;
-  render();
-}
+function showTab(tab) { currentTab = tab; render(); }
 
 window.showTab = showTab;
 window.setFilter = (cat) => { catFilter = cat; listPage = 1; render(); };
-
 window.doSpin = spinRoulette;
 window.doVote = castVote;
 window.doReset = resetSession;
@@ -363,7 +310,6 @@ window.goStart = () => {
   renderStart();
 };
 
-// ── 주소 입력 화면 ────────────────────────────────────
 function renderStart() {
   document.getElementById("app").innerHTML = `
     <div class="start">
@@ -381,16 +327,39 @@ function renderStart() {
   input.focus();
 }
 
-// ── 메인 렌더 ─────────────────────────────────────────
+function renderPickCards(pool) {
+  const totalPages = Math.ceil(pool.length / LIST_PER_PAGE);
+  if (listPage > totalPages) listPage = 1;
+  const paged = pool.slice((listPage - 1) * LIST_PER_PAGE, listPage * LIST_PER_PAGE);
+  return `
+    ${paged.map(r => `
+      <div class="pick-card ${selected.has(r.id) ? "selected" : ""}" onclick="togglePick('${r.id}')">
+        <div class="check">${selected.has(r.id) ? "✓" : ""}</div>
+        <div class="emoji">${r.emoji}</div>
+        <div class="info">
+          <div class="name">${r.name}</div>
+          <div class="sub">${r.category} · ${r.distance}m · ${r.address}</div>
+          ${r.url ? `<a href="${r.url}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#1D9E75;text-decoration:none;margin-top:3px;opacity:0.8">지도보기 <span style="font-size:10px">↗</span></a>` : ""}
+        </div>
+      </div>`).join("")}
+    ${totalPages > 1 ? `
+      <div class="page-row">
+        <button onclick="setListPage(${listPage - 1})" ${listPage <= 1 ? "disabled" : ""}>이전</button>
+        ${Array.from({length: totalPages}, (_, i) => i + 1).map(p =>
+          `<button class="${p === listPage ? "active" : ""}" onclick="setListPage(${p})">${p}</button>`).join("")}
+        <button onclick="setListPage(${listPage + 1})" ${listPage >= totalPages ? "disabled" : ""}>다음</button>
+      </div>` : ""}`;
+}
+
 function render() {
   const app = document.getElementById("app");
-
   if (screen === "loading") {
     app.innerHTML = `<div class="start"><div class="icon">🔍</div><h2>식당 찾는 중...</h2><p style="color:#888;font-size:14px">${address} 주변 식당을 불러오고 있어요</p></div>`;
     return;
   }
 
   const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+  const pool = getPool();
 
   app.innerHTML = `
     <div class="header">
@@ -407,7 +376,6 @@ function render() {
     <div class="content" id="content"></div>`;
 
   const c = document.getElementById("content");
-  const pool = getPool();
 
   if (currentTab === "main") {
     const candidateBox = spinDone && candidates.length > 0 ? `
@@ -477,54 +445,6 @@ function render() {
         <button class="reset-btn" onclick="doReset()">다시 선택하기</button>`;
     }
   }
-}
-
-function renderListCards(pool) {
-  const totalPages = Math.ceil(pool.length / LIST_PER_PAGE);
-  if (listPage > totalPages) listPage = 1;
-  const paged = pool.slice((listPage - 1) * LIST_PER_PAGE, listPage * LIST_PER_PAGE);
-  return `
-    ${paged.map(r => `
-      <div class="list-card">
-        <div class="emoji">${r.emoji}</div>
-        <div class="info">
-          <div class="name">${r.name}</div>
-          <div class="sub">${r.category} · 도보 약 ${Math.round(r.distance / 67)}분 (${r.distance}m)</div>
-          <div class="addr">${r.address}</div>
-          ${r.url ? `<a href="${r.url}" target="_blank">카카오맵에서 보기 →</a>` : ""}
-        </div>
-      </div>`).join("")}
-    ${totalPages > 1 ? `
-      <div class="page-row">
-        <button onclick="setListPage(${listPage - 1})" ${listPage <= 1 ? "disabled" : ""}>이전</button>
-        ${Array.from({length: totalPages}, (_, i) => i + 1).map(p =>
-          `<button class="${p === listPage ? "active" : ""}" onclick="setListPage(${p})">${p}</button>`).join("")}
-        <button onclick="setListPage(${listPage + 1})" ${listPage >= totalPages ? "disabled" : ""}>다음</button>
-      </div>` : ""}`;
-}
-
-function renderPickCards(pool) {
-  const totalPages = Math.ceil(pool.length / LIST_PER_PAGE);
-  if (listPage > totalPages) listPage = 1;
-  const paged = pool.slice((listPage - 1) * LIST_PER_PAGE, listPage * LIST_PER_PAGE);
-  return `
-    ${paged.map(r => `
-      <div class="pick-card ${selected.has(r.id) ? "selected" : ""}" onclick="togglePick('${r.id}')">
-        <div class="check">${selected.has(r.id) ? "✓" : ""}</div>
-        <div class="emoji">${r.emoji}</div>
-        <div class="info">
-          <div class="name">${r.name}</div>
-          <div class="sub">${r.category} · ${r.distance}m · <span style="font-size:10px;color:#bbb">${r.fullCategory}</span></div>
-          ${r.url ? `<a href="${r.url}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#1D9E75;text-decoration:none;margin-top:3px;opacity:0.8">지도보기 <span style="font-size:10px">↗</span></a>` : ""}
-        </div>
-      </div>`).join("")}
-    ${totalPages > 1 ? `
-      <div class="page-row">
-        <button onclick="setListPage(${listPage - 1})" ${listPage <= 1 ? "disabled" : ""}>이전</button>
-        ${Array.from({length: totalPages}, (_, i) => i + 1).map(p =>
-          `<button class="${p === listPage ? "active" : ""}" onclick="setListPage(${p})">${p}</button>`).join("")}
-        <button onclick="setListPage(${listPage + 1})" ${listPage >= totalPages ? "disabled" : ""}>다음</button>
-      </div>` : ""}`;
 }
 
 kakao.maps.load(() => renderStart());
