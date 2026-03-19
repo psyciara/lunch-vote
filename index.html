@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘 점심 뭐 먹지?</title>
+<script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f90bfa620f829b1492197e513e705baa&libraries=services"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; color: #111; }
+  .wrap { max-width: 560px; margin: 0 auto; background: #fff; min-height: 100vh; }
+  .start { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+  .start .icon { font-size: 48px; margin-bottom: 16px; }
+  .start h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .start p { font-size: 14px; color: #888; margin-bottom: 28px; text-align: center; line-height: 1.6; }
+  .start input { width: 100%; max-width: 380px; padding: 12px 14px; font-size: 14px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 10px; outline: none; }
+  .start input:focus { border-color: #1D9E75; }
+  .start button { width: 100%; max-width: 380px; padding: 12px; font-size: 14px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+  .start button:disabled { background: #9FE1CB; cursor: not-allowed; }
+  .err { font-size: 13px; color: #e24b4a; margin-bottom: 10px; text-align: center; }
+  .header { padding: 16px 20px 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+  .header .left h1 { font-size: 17px; font-weight: 600; }
+  .header .left p { font-size: 12px; color: #888; margin-top: 2px; }
+  .header .change-btn { font-size: 12px; padding: 5px 12px; border: 1px solid #ddd; border-radius: 8px; background: none; cursor: pointer; color: #666; white-space: nowrap; }
+  .tabs { display: flex; border-bottom: 1px solid #eee; }
+  .tabs button { flex: 1; padding: 11px 0; font-size: 13px; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: #888; }
+  .tabs button.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 600; }
+  .content { padding: 20px; }
+
+  /* 모드 선택 */
+  .mode-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .mode-btn { flex: 1; padding: 10px; font-size: 13px; font-weight: 500; border-radius: 10px; border: 1.5px solid #ddd; background: none; cursor: pointer; color: #666; }
+  .mode-btn.active { border-color: #1D9E75; color: #1D9E75; background: #f0faf6; }
+
+  /* 룰렛/직접선택 결과 박스 */
+  .result-box { background: #f0faf6; border: 1.5px solid #1D9E75; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+  .result-box .label { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #1D9E75; }
+  .result-item { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .result-item .emoji { font-size: 18px; }
+  .result-item .info .name { font-size: 13px; font-weight: 500; }
+  .result-item .info .sub { font-size: 11px; color: #888; }
+  .result-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .go-vote { flex: 1; padding: 9px; font-size: 13px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+  .re-pick { flex: 1; padding: 9px; font-size: 13px; background: none; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; color: #666; }
+
+  .spin-btn { width: 100%; padding: 13px; font-size: 15px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 20px; }
+  .spin-btn:disabled { background: #9FE1CB; cursor: not-allowed; }
+
+  /* 필터 */
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filter-row button { font-size: 12px; padding: 5px 13px; border-radius: 999px; border: 1px solid #ddd; background: none; cursor: pointer; color: #666; }
+  .filter-row button.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+
+  /* 직접 선택 */
+  .pick-hint { font-size: 13px; color: #888; margin-bottom: 10px; }
+  .pick-hint span { color: #1D9E75; font-weight: 600; }
+  .pick-card { display: flex; align-items: center; gap: 12px; border: 1.5px solid #eee; border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .pick-card:hover { border-color: #9FE1CB; }
+  .pick-card.selected { border-color: #1D9E75; background: #f0faf6; }
+  .pick-card .check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .pick-card.selected .check { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+  .pick-card .emoji { font-size: 22px; }
+  .pick-card .info .name { font-size: 13px; font-weight: 500; }
+  .pick-card .info .sub { font-size: 11px; color: #888; margin-top: 1px; }
+  .pick-confirm { width: 100%; margin-top: 4px; padding: 13px; font-size: 14px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
+  .pick-confirm:disabled { background: #9FE1CB; cursor: not-allowed; }
+
+  /* 투표 */
+  .vote-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .vote-header .title { font-size: 14px; font-weight: 600; }
+  .vote-header .total { font-size: 12px; color: #888; }
+  .vote-card { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 12px; position: relative; }
+  .vote-card.top { border: 2px solid #1D9E75; }
+  .badge { position: absolute; top: -10px; left: 12px; background: #1D9E75; color: #fff; font-size: 11px; padding: 2px 10px; border-radius: 999px; }
+  .vote-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .vote-row .emoji { font-size: 28px; }
+  .vote-row .info { flex: 1; }
+  .vote-row .info .name { font-size: 14px; font-weight: 600; }
+  .vote-row .info .sub { font-size: 12px; color: #888; margin-top: 2px; }
+  .vote-btn { padding: 8px 16px; font-size: 13px; font-weight: 600; background: #1D9E75; color: #fff; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .bar-wrap { height: 6px; background: #eee; border-radius: 999px; }
+  .bar-fill { height: 100%; background: #1D9E75; border-radius: 999px; transition: width 0.4s; }
+  .pct { font-size: 11px; color: #888; text-align: right; margin-top: 3px; }
+  .empty { text-align: center; color: #888; font-size: 14px; padding: 3rem 0; line-height: 2; }
+  .reset-btn { width: 100%; margin-top: 8px; padding: 10px; font-size: 13px; background: none; border: 1px solid #ddd; border-radius: 10px; cursor: pointer; color: #888; }
+
+  /* 목록 */
+  .list-card { display: flex; align-items: center; gap: 12px; border: 1px solid #eee; border-radius: 12px; padding: 13px; margin-bottom: 8px; }
+  .list-card .emoji { font-size: 24px; min-width: 32px; text-align: center; }
+  .list-card .info .name { font-size: 14px; font-weight: 500; }
+  .list-card .info .sub { font-size: 12px; color: #888; margin-top: 2px; }
+  .list-card .info .addr { font-size: 11px; color: #aaa; margin-top: 1px; }
+  .list-card a { font-size: 11px; color: #1D9E75; text-decoration: none; display: block; margin-top: 3px; }
+  .page-row { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap; }
+  .page-row button { padding: 6px 12px; border: 1px solid #ddd; border-radius: 8px; background: none; cursor: pointer; color: #666; font-size: 13px; }
+  .page-row button.active { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+  .page-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .list-count { font-size: 12px; color: #888; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyABvvdIk3kJEjxlqcW7Youn_dYvwqTyF6Q",
+  authDomain: "ciaralunch.firebaseapp.com",
+  projectId: "ciaralunch",
+  storageBucket: "ciaralunch.firebasestorage.app",
+  messagingSenderId: "1041793952534",
+  appId: "1:1041793952534:web:226db2641ee1f099a13e37"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const TODAY = new Date().toISOString().slice(0, 10);
+const VOTE_DOC = `votes_${TODAY}`;
+
+const CATEGORIES = ["전체", "한식", "일식", "중식", "양식", "아시안", "버거·패스트푸드", "치킨", "분식", "기타"];
+const LIST_PER_PAGE = 15;
+
+function getEmoji(cat) {
+  if (!cat) return "🍽️";
+  if (cat.includes("한식") || cat.includes("분식")) return "🍱";
+  if (cat.includes("일식") || cat.includes("초밥")) return "🍣";
+  if (cat.includes("중식")) return "🥡";
+  if (cat.includes("양식") || cat.includes("이탈리아") || cat.includes("스테이크")) return "🍝";
+  if (cat.includes("패스트푸드") || cat.includes("햄버거")) return "🍔";
+  if (cat.includes("치킨")) return "🍗";
+  return "🍽️";
+}
+
+function getCatLabel(fullCat) {
+  if (!fullCat) return "기타";
+  if (fullCat.includes("한식") || fullCat.includes("분식")) return "한식";
+  if (fullCat.includes("일식") || fullCat.includes("초밥")) return "일식";
+  if (fullCat.includes("중식")) return "중식";
+  if (fullCat.includes("양식") || fullCat.includes("이탈리아") || fullCat.includes("스테이크")) return "양식";
+  if (fullCat.includes("패스트푸드") || fullCat.includes("햄버거")) return "버거·패스트푸드";
+  if (fullCat.includes("치킨")) return "한식";
+  return "기타";
+}
+
+// ── 상태 ──────────────────────────────────────────────
+let screen = "start";
+let address = "서울시 영등포구 국회대로 68길 11";
+let restaurants = [];
+let candidates = [];
+let votes = {};
+let spinning = false;
+let spinDone = false;
+let catFilter = "전체";
+let currentTab = "main"; // main | vote
+let pickMode = "roulette";
+let selected = new Set();
+let unsubscribe = null;
+let addrError = "";
+let loadingAddr = false;
+let listPage = 1;
+
+// ── 주소 검색 ─────────────────────────────────────────
+function handleSearch() {
+  if (!address.trim() || loadingAddr) return;
+  loadingAddr = true; addrError = "";
+  renderStart();
+  const geocoder = new kakao.maps.services.Geocoder();
+  geocoder.addressSearch(address, (result, status) => {
+    if (status === kakao.maps.services.Status.OK) {
+      const lat = parseFloat(result[0].y), lng = parseFloat(result[0].x);
+      screen = "loading"; render();
+      loadRestaurants(lat, lng);
+    } else {
+      addrError = "주소를 찾을 수 없어요. 다시 확인해주세요.";
+      loadingAddr = false; renderStart();
+    }
+  });
+}
+
+// ── 식당 불러오기 (구역 분할로 45개 제한 우회) ────────
+function loadRestaurants(lat, lng) {
+  const toItem = (p) => {
+    const cat = getCatLabel(p.category_name);
+    if (cat === null) return null; // 비음식점 제외
+    return {
+      id: p.id, name: p.place_name,
+      category: cat,
+      fullCategory: p.category_name,
+      distance: parseInt(p.distance),
+      _lat: parseFloat(p.y),
+      _lng: parseFloat(p.x),
+      address: p.road_address_name || p.address_name,
+      url: p.place_url,
+      emoji: getEmoji(cat),
+    };
+  };
+
+  // 중심점 + 상하좌우 4개 오프셋 지점으로 나눠서 검색
+  // 위도 0.005 ≈ 550m, 경도 0.006 ≈ 500m
+  const offsets = [
+    [0, 0],
+    [0.004, 0],
+    [-0.004, 0],
+    [0, 0.006],
+    [0, -0.006],
+  ];
+
+  let allData = [];
+  let done = 0;
+
+  offsets.forEach(([dlat, dlng]) => {
+    const center = new kakao.maps.LatLng(lat + dlat, lng + dlng);
+    const ps = new kakao.maps.services.Places();
+    let currentPage = 1;
+
+    function callback(data, status, pagination) {
+      if (status === kakao.maps.services.Status.OK) {
+        allData = allData.concat(data.map(p => toItem(p)));
+        if (pagination.hasNextPage && currentPage < 3) {
+          currentPage++;
+          ps.categorySearch("FD6", callback, {
+            location: center,
+            radius: 800,
+            sort: kakao.maps.services.SortBy.DISTANCE,
+            page: currentPage
+          });
+        } else {
+          checkDone();
+        }
+      } else {
+        checkDone();
+      }
+    }
+
+    ps.categorySearch("FD6", callback, {
+      location: center,
+      radius: 800,
+      sort: kakao.maps.services.SortBy.DISTANCE,
+      page: 1
+    });
+  });
+
+  function checkDone() {
+    done++;
+    if (done < offsets.length) return;
+
+    const seen = new Set();
+    restaurants = allData
+      .filter(r => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      })
+      .map(r => {
+        // 실제 중심점까지 거리 재계산 (단순 피타고라스 근사)
+        const dLat = (r._lat - lat) * 111000;
+        const dLng = (r._lng - lng) * 111000 * Math.cos(lat * Math.PI / 180);
+        r.distance = Math.round(Math.sqrt(dLat * dLat + dLng * dLng));
+        return r;
+      })
+      .filter(r => r.distance <= 400)
+      .sort((a, b) => a.distance - b.distance);
+
+    loadingAddr = false;
+    screen = "main";
+    subscribeVotes();
+  }
+}
+
+// ── Firebase ──────────────────────────────────────────
+function subscribeVotes() {
+  if (unsubscribe) unsubscribe();
+  unsubscribe = onSnapshot(doc(db, "sessions", VOTE_DOC), (snap) => {
+    if (snap.exists()) {
+      const data = snap.data();
+      // 저장된 날짜가 오늘과 다르면 무시
+      const savedDate = (data.updatedAt || "").slice(0, 10);
+      if (savedDate !== TODAY) {
+        votes = {}; candidates = []; spinDone = false;
+      } else {
+        votes = data.votes || {};
+        const savedIds = data.candidates || [];
+        candidates = savedIds.map(id => restaurants.find(r => r.id == id)).filter(Boolean);
+        spinDone = candidates.length > 0;
+      }
+    } else {
+      votes = {}; candidates = []; spinDone = false;
+    }
+    render();
+  });
+}
+
+async function saveSession() {
+  await setDoc(doc(db, "sessions", VOTE_DOC), {
+    candidates: candidates.map(r => r.id),
+    votes, updatedAt: new Date().toISOString()
+  });
+}
+
+async function castVote(id) {
+  votes[id] = (votes[id] || 0) + 1;
+  await saveSession();
+}
+
+async function resetSession() {
+  candidates = []; votes = {}; spinDone = false; selected = new Set();
+  await saveSession(); render();
+}
+
+// ── 룰렛 ──────────────────────────────────────────────
+function spinRoulette() {
+  if (spinning || restaurants.length === 0) return;
+  const pool = getPool();
+  const src = pool.length >= 3 ? pool : restaurants;
+  spinning = true; spinDone = false; candidates = []; votes = {};
+  render();
+  setTimeout(() => {
+    candidates = [...src].sort(() => Math.random() - 0.5).slice(0, 3);
+    spinning = false; spinDone = true;
+    saveSession().then(() => render());
+  }, 800);
+}
+
+// ── 직접 선택 ─────────────────────────────────────────
+async function confirmPick() {
+  if (selected.size !== 3) return;
+  candidates = [...selected].map(id => restaurants.find(r => r.id == id)).filter(Boolean);
+  votes = {}; spinDone = true; selected = new Set();
+  await saveSession();
+  render();
+}
+
+function togglePick(id) {
+  if (selected.has(id)) selected.delete(id);
+  else if (selected.size < 3) selected.add(id);
+  render();
+}
+
+function getPool() {
+  return catFilter === "전체" ? restaurants : restaurants.filter(r => r.category === catFilter);
+}
+
+// ── 탭/네비 ───────────────────────────────────────────
+function showTab(tab) {
+  currentTab = tab;
+  render();
+}
+
+window.showTab = showTab;
+window.setFilter = (cat) => { catFilter = cat; listPage = 1; render(); };
+
+window.doSpin = spinRoulette;
+window.doVote = castVote;
+window.doReset = resetSession;
+window.togglePick = togglePick;
+window.confirmPick = confirmPick;
+window.setListPage = (p) => { listPage = p; render(); };
+window.goStart = () => {
+  screen = "start"; restaurants = []; candidates = []; votes = {};
+  spinDone = false; selected = new Set();
+  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  renderStart();
+};
+
+// ── 주소 입력 화면 ────────────────────────────────────
+function renderStart() {
+  document.getElementById("app").innerHTML = `
+    <div class="start">
+      <div class="icon">🍱</div>
+      <h2>오늘 점심 뭐 먹지?</h2>
+      <p>회사 주소를 입력하면<br>주변 식당을 찾아드려요</p>
+      <input id="addr-input" type="text" placeholder="예) 서울시 영등포구 국회대로 68길 11" value="${address}" />
+      ${addrError ? `<div class="err">${addrError}</div>` : ""}
+      <button id="search-btn" ${loadingAddr ? "disabled" : ""}>${loadingAddr ? "검색 중..." : "주변 식당 찾기"}</button>
+    </div>`;
+  const input = document.getElementById("addr-input");
+  input.addEventListener("input", e => address = e.target.value);
+  input.addEventListener("keydown", e => e.key === "Enter" && handleSearch());
+  document.getElementById("search-btn").addEventListener("click", handleSearch);
+  input.focus();
+}
+
+// ── 메인 렌더 ─────────────────────────────────────────
+function render() {
+  const app = document.getElementById("app");
+
+  if (screen === "loading") {
+    app.innerHTML = `<div class="start"><div class="icon">🔍</div><h2>식당 찾는 중...</h2><p style="color:#888;font-size:14px">${address} 주변 식당을 불러오고 있어요</p></div>`;
+    return;
+  }
+
+  const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="left">
+        <h1>🍱 오늘 점심 뭐 먹지?</h1>
+        <p>📍 ${address.length > 22 ? address.slice(0, 22) + "…" : address}</p>
+      </div>
+      <button class="change-btn" onclick="goStart()">주소 변경</button>
+    </div>
+    <div class="tabs">
+      <button class="${currentTab === "main" ? "active" : ""}" onclick="showTab('main')">식당 선택</button>
+      <button class="${currentTab === "vote" ? "active" : ""}" onclick="showTab('vote')">투표${totalVotes > 0 ? ` (${totalVotes})` : ""}</button>
+    </div>
+    <div class="content" id="content"></div>`;
+
+  const c = document.getElementById("content");
+  const pool = getPool();
+
+  if (currentTab === "main") {
+    const candidateBox = spinDone && candidates.length > 0 ? `
+      <div class="result-box">
+        <div class="label">✅ 현재 후보 3곳</div>
+        ${candidates.map(r => `
+          <div class="result-item">
+            <span class="emoji">${r.emoji}</span>
+            <div class="info">
+              <div class="name">${r.name}</div>
+              <div class="sub">${r.category} · ${r.distance}m</div>
+            </div>
+          </div>`).join("")}
+        <div class="result-actions">
+          <button class="go-vote" onclick="showTab('vote')">투표하러 가기 →</button>
+          <button class="re-pick" onclick="doReset()">다시 선택</button>
+        </div>
+      </div>` : "";
+
+    const cnt = selected.size;
+    c.innerHTML = `
+      ${candidateBox}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <p class="pick-hint" style="margin:0">후보로 올릴 식당 3곳을 골라주세요 (<span>${cnt}</span>/3)</p>
+        <button class="spin-btn" style="width:auto;padding:8px 14px;font-size:13px;margin:0" ${spinning ? "disabled" : ""} onclick="doSpin()">🎲 룰렛</button>
+      </div>
+      <button class="pick-confirm" ${cnt !== 3 ? "disabled" : ""} onclick="confirmPick()">
+        ${cnt === 3 ? "선택 완료 → 투표 시작" : `3개를 선택해주세요 (${cnt}/3)`}
+      </button>
+      <div class="filter-row">
+        ${CATEGORIES.map(cat => `<button class="${catFilter === cat ? "active" : ""}" onclick="setFilter('${cat}')">${cat}</button>`).join("")}
+      </div>
+      <div class="list-count">전체 ${pool.length}곳</div>
+      ${renderPickCards(pool)}`;
+
+  } else if (currentTab === "vote") {
+    if (candidates.length === 0) {
+      c.innerHTML = `<div class="empty">먼저 식당 후보를 선택해주세요!<br>
+        <button class="go-vote" style="max-width:200px;margin:12px auto 0;display:block" onclick="showTab('main')">식당 선택 탭으로 이동</button></div>`;
+    } else {
+      const maxV = Math.max(...candidates.map(r => votes[r.id] || 0), 1);
+      const sorted = [...candidates].sort((a, b) => (votes[b.id] || 0) - (votes[a.id] || 0));
+      c.innerHTML = `
+        <div class="vote-header">
+          <div class="title">오늘의 점심 후보</div>
+          <div class="total">총 ${totalVotes}표</div>
+        </div>
+        ${sorted.map((r, i) => {
+          const v = votes[r.id] || 0;
+          const pct = totalVotes > 0 ? Math.round(v / totalVotes * 100) : 0;
+          const isTop = i === 0 && v > 0;
+          return `
+            <div class="vote-card ${isTop ? "top" : ""}">
+              ${isTop ? '<div class="badge">현재 1위</div>' : ""}
+              <div class="vote-row">
+                <div class="emoji">${r.emoji}</div>
+                <div class="info">
+                  <div class="name">${r.name}</div>
+                  <div class="sub">${r.category} · ${r.distance}m</div>
+                </div>
+                <button class="vote-btn" onclick="doVote('${r.id}')">👍 ${v}표</button>
+              </div>
+              <div class="bar-wrap"><div class="bar-fill" style="width:${totalVotes > 0 ? Math.round(v / maxV * 100) : 0}%"></div></div>
+              ${totalVotes > 0 ? `<div class="pct">${pct}%</div>` : ""}
+            </div>`;
+        }).join("")}
+        <button class="reset-btn" onclick="doReset()">다시 선택하기</button>`;
+    }
+  }
+}
+
+function renderListCards(pool) {
+  const totalPages = Math.ceil(pool.length / LIST_PER_PAGE);
+  if (listPage > totalPages) listPage = 1;
+  const paged = pool.slice((listPage - 1) * LIST_PER_PAGE, listPage * LIST_PER_PAGE);
+  return `
+    ${paged.map(r => `
+      <div class="list-card">
+        <div class="emoji">${r.emoji}</div>
+        <div class="info">
+          <div class="name">${r.name}</div>
+          <div class="sub">${r.category} · 도보 약 ${Math.round(r.distance / 67)}분 (${r.distance}m)</div>
+          <div class="addr">${r.address}</div>
+          ${r.url ? `<a href="${r.url}" target="_blank">카카오맵에서 보기 →</a>` : ""}
+        </div>
+      </div>`).join("")}
+    ${totalPages > 1 ? `
+      <div class="page-row">
+        <button onclick="setListPage(${listPage - 1})" ${listPage <= 1 ? "disabled" : ""}>이전</button>
+        ${Array.from({length: totalPages}, (_, i) => i + 1).map(p =>
+          `<button class="${p === listPage ? "active" : ""}" onclick="setListPage(${p})">${p}</button>`).join("")}
+        <button onclick="setListPage(${listPage + 1})" ${listPage >= totalPages ? "disabled" : ""}>다음</button>
+      </div>` : ""}`;
+}
+
+function renderPickCards(pool) {
+  const totalPages = Math.ceil(pool.length / LIST_PER_PAGE);
+  if (listPage > totalPages) listPage = 1;
+  const paged = pool.slice((listPage - 1) * LIST_PER_PAGE, listPage * LIST_PER_PAGE);
+  return `
+    ${paged.map(r => `
+      <div class="pick-card ${selected.has(r.id) ? "selected" : ""}" onclick="togglePick('${r.id}')">
+        <div class="check">${selected.has(r.id) ? "✓" : ""}</div>
+        <div class="emoji">${r.emoji}</div>
+        <div class="info">
+          <div class="name">${r.name}</div>
+          <div class="sub">${r.category} · ${r.distance}m · <span style="font-size:10px;color:#bbb">${r.fullCategory}</span></div>
+          ${r.url ? `<a href="${r.url}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#1D9E75;text-decoration:none;margin-top:3px;opacity:0.8">지도보기 <span style="font-size:10px">↗</span></a>` : ""}
+        </div>
+      </div>`).join("")}
+    ${totalPages > 1 ? `
+      <div class="page-row">
+        <button onclick="setListPage(${listPage - 1})" ${listPage <= 1 ? "disabled" : ""}>이전</button>
+        ${Array.from({length: totalPages}, (_, i) => i + 1).map(p =>
+          `<button class="${p === listPage ? "active" : ""}" onclick="setListPage(${p})">${p}</button>`).join("")}
+        <button onclick="setListPage(${listPage + 1})" ${listPage >= totalPages ? "disabled" : ""}>다음</button>
+      </div>` : ""}`;
+}
+
+kakao.maps.load(() => renderStart());
+</script>
+</body>
+</html>
