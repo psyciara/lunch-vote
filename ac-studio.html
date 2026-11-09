@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>역량평가 과제 만들기</title>
+<!--
+  사내 AI 포털 · 역량평가 과제 개발 화면 (프로토타입)
+  화면 원칙
+  1. 화면은 3단계(입력 → 주제 고르기 → 결과)만 둔다. 한 화면에 한 가지 결정만 요구한다.
+  2. 필수 입력은 3개(평가 기법, 대상, 평가 역량)뿐이다. 주제와 참고자료는 선택이다.
+  3. 모델 선택, 프롬프트, 온도·토큰 같은 설정은 화면에 두지 않는다. 포털이 정한다.
+  4. 결과 수정은 입력창 하나로 한다. "2번 자료를 더 짧게"처럼 말로 요청한다.
+  5. 산출물(스토리맵, 과제지, 평정가이드)은 탭 3개로만 나눈다.
+  AI 응답은 이 파일 안의 예시 데이터로 흉내 낸다. 실제 연결 시 generate*() 함수만 API 호출로 바꾸면 된다.
+-->
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --sub: #6b7280; --line: #e5e7eb;
+    --accent: #2f5bea; --accent-soft: #eef2fe; --accent-text: #ffffff; --ok: #12805c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111317; --card: #1a1d23; --text: #eceef2; --sub: #9aa1ad; --line: #2b2f37;
+      --accent: #7c9bff; --accent-soft: #1f2740; --accent-text: #0d1020; --ok: #4cc59a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111317; --card: #1a1d23; --text: #eceef2; --sub: #9aa1ad; --line: #2b2f37;
+    --accent: #7c9bff; --accent-soft: #1f2740; --accent-text: #0d1020; --ok: #4cc59a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.6; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 120px; }
+
+  /* 단계 표시 */
+  .steps { display: flex; gap: 8px; margin-bottom: 28px; font-size: 13px; color: var(--sub); }
+  .steps span { display: flex; align-items: center; gap: 6px; }
+  .steps b { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+             border: 1px solid var(--line); font-weight: 600; font-size: 12px; }
+  .steps .on { color: var(--text); font-weight: 600; }
+  .steps .on b { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .steps .done b { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-soft); }
+  .steps i { flex: 1; max-width: 32px; border-top: 1px solid var(--line); align-self: center; }
+
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .lead { color: var(--sub); font-size: 14px; margin-bottom: 28px; }
+
+  .field { margin-bottom: 24px; }
+  .field > label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .field > label small { font-weight: 400; color: var(--sub); margin-left: 4px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 9px 14px; border: 1px solid var(--line); background: var(--card); color: var(--text);
+          border-radius: 999px; font-size: 14px; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+
+  input[type=text], textarea { width: 100%; padding: 12px 14px; font: inherit; font-size: 14px; color: var(--text);
+          background: var(--card); border: 1px solid var(--line); border-radius: 10px; outline: none; }
+  input[type=text]:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 84px; }
+
+  .drop { display: block; padding: 16px; border: 1px dashed var(--line); border-radius: 10px; background: var(--card);
+          font-size: 13px; color: var(--sub); text-align: center; cursor: pointer; }
+  .drop input { display: none; }
+
+  .primary { width: 100%; padding: 14px; font-size: 15px; font-weight: 600; border: none; border-radius: 10px;
+             background: var(--accent); color: var(--accent-text); cursor: pointer; }
+  .primary:disabled { opacity: .4; cursor: not-allowed; }
+  .ghost { padding: 9px 14px; font-size: 13px; border: 1px solid var(--line); background: var(--card); color: var(--text);
+           border-radius: 8px; cursor: pointer; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .hint { font-size: 12px; color: var(--sub); margin-top: 8px; }
+
+  /* 주제 후보 */
+  .topic { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 12px;
+           cursor: pointer; text-align: left; width: 100%; font: inherit; color: inherit; }
+  .topic:hover { border-color: var(--accent); }
+  .topic h3 { font-size: 16px; margin-bottom: 6px; }
+  .topic p { font-size: 14px; color: var(--sub); }
+  .topic .tags { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .topic .tags span { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+
+  /* 결과 */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+  .tabs button { padding: 10px 14px; font: inherit; font-size: 14px; background: none; border: none; color: var(--sub);
+                 border-bottom: 2px solid transparent; cursor: pointer; }
+  .tabs button.on { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+  .doc { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; font-size: 14px; min-height: 240px; }
+  .doc h2 { font-size: 17px; margin: 18px 0 8px; } .doc h2:first-child { margin-top: 0; }
+  .doc ul { padding-left: 20px; } .doc li { margin: 2px 0; }
+  .doc table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+  .doc th, .doc td { border: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
+  .doc th { background: var(--accent-soft); }
+  .doc .changed { background: var(--accent-soft); border-radius: 4px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
+  .toolbar .title { font-size: 13px; color: var(--sub); }
+  .toast { font-size: 13px; color: var(--ok); }
+
+  .askbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 16px; }
+  .askbar form { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; }
+  .askbar input { flex: 1; }
+  .askbar button { padding: 0 18px; border: none; border-radius: 10px; background: var(--accent); color: var(--accent-text);
+                   font: inherit; font-weight: 600; cursor: pointer; }
+  .loading { padding: 40px 0; text-align: center; color: var(--sub); font-size: 14px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="steps" id="steps">
+    <span data-step="1"><b>1</b>입력</span><i></i>
+    <span data-step="2"><b>2</b>주제 고르기</span><i></i>
+    <span data-step="3"><b>3</b>결과</span>
+  </div>
+
+  <!-- 1단계: 입력 -->
+  <section id="s1">
+    <h1>역량평가 과제 만들기</h1>
+    <p class="lead">세 가지만 고르면 AI가 주제 후보를 먼저 보여 드립니다.</p>
+
+    <div class="field">
+      <label>평가 기법</label>
+      <div class="chips" data-group="method" data-single>
+        <button class="chip" aria-pressed="false">서류함</button>
+        <button class="chip" aria-pressed="false">역할수행</button>
+        <button class="chip" aria-pressed="false">발표</button>
+        <button class="chip" aria-pressed="false">집단토론</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="target">대상</label>
+      <input type="text" id="target" placeholder="예: 신임 팀장, 4급 승진 후보자">
+    </div>
+
+    <div class="field">
+      <label>평가 역량 <small>최대 3개</small></label>
+      <div class="chips" data-group="comp" data-max="3">
+        <button class="chip" aria-pressed="false">문제해결</button>
+        <button class="chip" aria-pressed="false">기획력</button>
+        <button class="chip" aria-pressed="false">의사결정</button>
+        <button class="chip" aria-pressed="false">조정·통합</button>
+        <button class="chip" aria-pressed="false">의사소통</button>
+        <button class="chip" aria-pressed="false">성과관리</button>
+        <button class="chip" aria-pressed="false">동기부여</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="topic">주제나 상황 <small>선택 · 비워 두면 AI가 추천</small></label>
+      <textarea id="topic" placeholder="예: 지역 축제 예산 축소를 두고 부서 간 의견이 갈리는 상황"></textarea>
+    </div>
+
+    <div class="field">
+      <label>참고 자료 <small>선택 · 기출 과제, 평정가이드, 기관 소개 자료</small></label>
+      <label class="drop" id="drop">파일을 끌어 놓거나 눌러서 올리기 (PDF, PPTX, DOCX, XLSX)
+        <input type="file" id="files" multiple accept=".pdf,.pptx,.docx,.xlsx,.csv">
+      </label>
+      <div class="hint" id="fileList"></div>
+    </div>
+
+    <button class="primary" id="go1" disabled>주제 후보 받기</button>
+    <div class="hint" id="go1hint">평가 기법, 대상, 평가 역량을 입력하면 버튼이 켜집니다.</div>
+  </section>
+
+  <!-- 2단계: 주제 고르기 -->
+  <section id="s2" class="hidden">
+    <h1>주제를 하나 고르세요</h1>
+    <p class="lead" id="s2lead"></p>
+    <div id="topics"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="ghost" id="reroll">다른 후보 3개 보기</button>
+      <button class="ghost" id="back1">입력 고치기</button>
+    </div>
+  </section>
+
+  <!-- 3단계: 결과 -->
+  <section id="s3" class="hidden">
+    <div class="toolbar">
+      <div>
+        <h1 id="s3title" style="font-size:20px;margin:0"></h1>
+        <div class="title" id="s3meta"></div>
+      </div>
+      <div class="row">
+        <span class="toast" id="toast"></span>
+        <button class="ghost" id="copy">복사</button>
+        <button class="ghost" id="download">워드 파일로 받기</button>
+      </div>
+    </div>
+    <div class="tabs" id="tabs">
+      <button data-tab="story" class="on">스토리맵</button>
+      <button data-tab="task">과제지</button>
+      <button data-tab="guide">평정가이드</button>
+    </div>
+    <div class="doc" id="doc"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="ghost" id="back2">다른 주제 고르기</button>
+    </div>
+  </section>
+</div>
+
+<!-- 결과 수정 입력창 (3단계에서만 보임) -->
+<div class="askbar hidden" id="askbar">
+  <form id="askform">
+    <input type="text" id="ask" placeholder="고칠 내용을 적어 주세요. 예: 자료 3을 민원 메일로 바꿔 줘">
+    <button type="submit">반영</button>
+  </form>
+</div>
+
+<script>
+const state = { method: null, comp: [], target: '', topic: '', files: [], chosen: null, tab: 'story', docs: {}, round: 0 };
+const $ = id => document.getElementById(id);
+
+/* ---------- 1단계 ---------- */
+document.querySelectorAll('.chips').forEach(group => {
+  group.addEventListener('click', e => {
+    const chip = e.target.closest('.chip'); if (!chip) return;
+    const single = group.hasAttribute('data-single');
+    const max = +group.dataset.max || 99;
+    const on = chip.getAttribute('aria-pressed') === 'true';
+    if (single) group.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+    else if (!on && group.querySelectorAll('[aria-pressed="true"]').length >= max) return;
+    chip.setAttribute('aria-pressed', single ? 'true' : String(!on));
+    const picked = [...group.querySelectorAll('[aria-pressed="true"]')].map(c => c.textContent);
+    if (group.dataset.group === 'method') state.method = picked[0] || null; else state.comp = picked;
+    check1();
+  });
+});
+$('target').addEventListener('input', e => { state.target = e.target.value.trim(); check1(); });
+$('topic').addEventListener('input', e => { state.topic = e.target.value.trim(); check1(); });
+$('files').addEventListener('change', e => addFiles(e.target.files));
+$('drop').addEventListener('dragover', e => e.preventDefault());
+$('drop').addEventListener('drop', e => { e.preventDefault(); addFiles(e.dataTransfer.files); });
+function addFiles(list) {
+  state.files.push(...[...list].map(f => f.name));
+  $('fileList').textContent = state.files.length ? '올린 파일: ' + state.files.join(', ') : '';
+}
+function check1() {
+  const ok = state.method && state.target && state.comp.length;
+  $('go1').disabled = !ok;
+  $('go1hint').classList.toggle('hidden', !!ok);
+  $('go1').textContent = state.topic ? '이 주제로 과제 만들기' : '주제 후보 받기';
+}
+$('go1').addEventListener('click', () => {
+  if (state.topic) { pickTopic({ title: state.topic.slice(0, 40), summary: state.topic, issues: state.comp }); return; }
+  showTopics();
+});
+
+/* ---------- 2단계 ---------- */
+const POOL = [
+  { title: '공공 체육시설 야간 개방 확대', summary: '주민 요구로 야간 개방을 늘리려 하나, 관리 인력·안전 예산·인근 소음 민원이 함께 걸려 있다.', issues: ['예산 배분', '부서 간 이견', '민원 대응'] },
+  { title: '노후 전산 시스템 전환 일정 조정', summary: '전환 마감이 다가오는데 현업 부서는 업무 공백을 이유로 연기를 요청하고, 보안 점검 결과는 즉시 전환을 권한다.', issues: ['일정 충돌', '위험 판단', '이해관계자 설득'] },
+  { title: '신규 채용 인원 부서별 배정', summary: '올해 채용 인원이 계획보다 30% 줄어 부서마다 요구 인원을 다 들어줄 수 없다.', issues: ['우선순위', '근거 기반 판단', '구성원 동기'] },
+  { title: '협력업체 납품 지연 대응', summary: '핵심 부품 납품이 3주 늦어져 고객 약속과 계약 조건, 대체 업체 검토가 동시에 필요하다.', issues: ['대안 비교', '대외 협상', '손실 최소화'] },
+  { title: '팀 내 업무량 불균형 해소', summary: '특정 팀원에게 업무가 몰려 이직 의사가 나왔고, 다른 팀원은 역할 변경에 반대한다.', issues: ['업무 재배분', '면담', '성과 기준'] },
+  { title: '탄소 감축 목표 달성 방안', summary: '상반기 감축 실적이 목표의 40%에 그쳐 하반기 사업 조정안을 마련해야 한다.', issues: ['자료 분석', '실행 계획', '부서 협조'] },
+];
+function generateTopics() {               // 실제 연결 시: 입력값 + 참고자료로 주제 후보 3개 요청
+  const start = (state.round * 3) % POOL.length; state.round++;
+  return POOL.slice(start, start + 3);
+}
+function showTopics() {
+  go(2);
+  $('s2lead').textContent = `${state.method} · ${state.target} · ${state.comp.join(', ')}` +
+    (state.files.length ? ` · 참고 자료 ${state.files.length}개 반영` : '');
+  $('topics').innerHTML = '<div class="loading">주제 후보를 만드는 중…</div>';
+  setTimeout(() => {
+    const list = generateTopics();
+    $('topics').innerHTML = '';
+    list.forEach(t => {
+      const b = document.createElement('button'); b.className = 'topic';
+      b.innerHTML = `<h3>${t.title}</h3><p>${t.summary}</p><div class="tags">${t.issues.map(i => `<span>${i}</span>`).join('')}</div>`;
+      b.onclick = () => pickTopic(t);
+      $('topics').appendChild(b);
+    });
+  }, 600);
+}
+$('reroll').onclick = showTopics;
+$('back1').onclick = () => go(1);
+
+/* ---------- 3단계 ---------- */
+function generateDocs(t) {                // 실제 연결 시: 선택한 주제로 스토리맵·과제지·평정가이드 요청
+  const c = state.comp;
+  const role = state.method === '서류함' ? '처리할 자료' : state.method === '역할수행' ? '상대역 정보' : state.method === '발표' ? '발표 요구사항' : '토론 쟁점';
+  return {
+    story: `
+      <h2>주제</h2><p>${t.title}</p>
+      <h2>상황 요약</h2><p>${t.summary}</p>
+      <h2>평가 설계</h2>
+      <table><tr><th>평가 역량</th><th>과제 속 장면</th></tr>
+      ${c.map((x, i) => `<tr><td>${x}</td><td>${t.issues[i % t.issues.length]}이(가) 드러나는 자료 ${i + 1}~${i + 2}</td></tr>`).join('')}</table>
+      <h2>기본 정보</h2><ul><li>평가 기법: ${state.method}</li><li>대상: ${state.target}</li><li>권장 수행 시간: ${state.method === '서류함' ? '60분' : '30분 준비 + 20분 수행'}</li></ul>`,
+    task: `
+      <h2>안내</h2><p>귀하는 오늘부터 ${state.target}(으)로 일하게 되었습니다. 아래 자료를 검토하고 ${state.method === '발표' ? '발표 자료를 준비하십시오.' : '필요한 조치를 정하십시오.'}</p>
+      <h2>${role}</h2>
+      <ul>
+        <li>자료 1. 현황 보고 — ${t.summary}</li>
+        <li>자료 2. 관련 부서 의견 — ${t.issues[0]}에 대한 두 부서의 서로 다른 입장</li>
+        <li>자료 3. 수치 자료 — 최근 3년 예산·인력 추이 표</li>
+        <li>자료 4. 상급자 지시 — 이번 주 금요일까지 처리 방안 보고 요청</li>
+      </ul>
+      <h2>제출물</h2><p>${state.method === '서류함' ? '자료별 처리 내용과 판단 근거를 답안지에 적으십시오.' : '핵심 판단과 근거를 3가지 이내로 정리하십시오.'}</p>`,
+    guide: `
+      <h2>역량별 행동 지표</h2>
+      <table><tr><th>역량</th><th>잘한 행동</th><th>부족한 행동</th></tr>
+      ${c.map(x => `<tr><td>${x}</td><td>자료 2와 3을 연결해 원인을 수치로 제시함</td><td>한쪽 부서 의견만 근거로 결론을 냄</td></tr>`).join('')}</table>
+      <h2>점수 기준</h2><ul><li>5점: 모든 자료의 쟁점을 찾고, 우선순위와 근거를 함께 제시</li><li>3점: 주요 쟁점은 찾았으나 근거가 일부 빠짐</li><li>1점: 쟁점을 놓치거나 근거 없이 결론만 제시</li></ul>
+      <h2>평가자 질문 예시</h2><ul><li>자료 2의 두 의견 중 무엇을 먼저 반영했고, 그 이유는 무엇입니까?</li><li>상급자 마감에 맞추지 못한다면 어떻게 보고하겠습니까?</li></ul>`
+  };
+}
+function pickTopic(t) {
+  state.chosen = t; go(3);
+  $('s3title').textContent = t.title;
+  $('s3meta').textContent = `${state.method} · ${state.target} · ${state.comp.join(', ')}`;
+  $('doc').innerHTML = '<div class="loading">스토리맵, 과제지, 평정가이드를 만드는 중…</div>';
+  setTimeout(() => { state.docs = generateDocs(t); render(); }, 800);
+}
+function render() { $('doc').innerHTML = state.docs[state.tab] || ''; }
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  state.tab = b.dataset.tab; render();
+});
+$('askform').addEventListener('submit', e => {   // 실제 연결 시: 현재 탭 문서 + 요청문으로 수정 요청
+  e.preventDefault();
+  const q = $('ask').value.trim(); if (!q) return;
+  $('ask').value = '';
+  state.docs[state.tab] += `<p class="changed">[반영됨] ${q.replace(/</g, '&lt;')}</p>`;
+  render(); flash('수정 내용을 반영했습니다.');
+});
+$('copy').onclick = () => {
+  navigator.clipboard?.writeText($('doc').innerText).then(() => flash('복사했습니다.'), () => flash('복사하지 못했습니다.'));
+};
+$('download').onclick = () => {
+  const html = `<html><meta charset="utf-8"><body>${['story', 'task', 'guide'].map(k => state.docs[k]).join('<hr>')}</body></html>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html], { type: 'application/msword' }));
+  a.download = `${state.chosen.title}.doc`; a.click();
+};
+$('back2').onclick = showTopics;
+function flash(msg) { $('toast').textContent = msg; setTimeout(() => $('toast').textContent = '', 2000); }
+
+/* ---------- 공통 ---------- */
+function go(n) {
+  ['s1', 's2', 's3'].forEach((id, i) => $(id).classList.toggle('hidden', i + 1 !== n));
+  $('askbar').classList.toggle('hidden', n !== 3);
+  document.querySelectorAll('#steps span').forEach(s => {
+    const k = +s.dataset.step;
+    s.className = k === n ? 'on' : k < n ? 'done' : '';
+  });
+  window.scrollTo(0, 0);
+}
+go(1);
+</script>
+</body>
+</html>
