@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
 <title>과제 개발 포털</title>
 <!--
-  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.6)
+  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.7)
   - 화면 원칙은 명세 2-1, 화면 용어는 명세 2-2를 따른다.
   - AI 응답, 음성 인식, 파일 처리는 이 파일 안의 예시 데이터로 흉내 낸다.
   - 예시 과제(한빛시 공영자전거)는 시안용으로 지어낸 내용이다. 실제 과제·양식의 내용은 넣지 않았다.
@@ -265,6 +265,20 @@
   .flink { display:inline-flex; gap:4px; align-items:center; border:none; background:none; color:var(--accent); text-decoration:underline; font-size:13px; padding:2px 0; text-align:left; }
   .modal { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:70; display:flex; align-items:center; justify-content:center; padding:16px; overscroll-behavior:contain; }
   .mbox { background:var(--card); border-radius:12px; padding:18px; width:min(640px,100%); max-height:85vh; overflow:auto; box-shadow:0 12px 40px rgba(0,0,0,.25); }
+  .progline { display:grid; grid-template-columns:auto 1fr auto; gap:4px 10px; align-items:center; margin-bottom:12px; font-size:14px; }
+  .progline .bar { grid-column:1 / -1; height:4px; background:var(--soft); border-radius:4px; overflow:hidden; }
+  .progline .bar i { display:block; height:100%; background:var(--accent); }
+  .sumrow { display:grid; grid-template-columns:110px 1fr; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .sumrow:last-of-type { border-bottom:none; }
+  details.more { margin-top:8px; }
+  details.more > summary { display:inline-flex; gap:6px; align-items:center; cursor:pointer; color:var(--accent); font-size:14px; min-height:36px; list-style:none; }
+  details.more > summary::-webkit-details-marker { display:none; }
+  .pickc { cursor:default; }
+  .pickc.on { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .pickhead { display:flex; gap:12px; align-items:flex-start; cursor:pointer; }
+  .pickhead input { margin-top:4px; }
+  .pickhead .ttl { font-size:16px; }
+  .ailink { margin:10px 0; }
   /* 스킬 파일 보기 */
   .skillv { display:grid; grid-template-columns:240px minmax(0,1fr); gap:14px; align-items:start; }
   @media (max-width:820px) { .skillv { grid-template-columns:1fr; } }
@@ -494,6 +508,7 @@ function compactPair(a, b) {   // 긴 글은 바뀐 줄과 앞뒤 한 줄만 보
 }
 function aiBox(id, examples, ph) {
   const p = S.ai[id] || {};
+  if (!p.status && !S.aiOpen[id]) return `<button class="btn sm ailink" data-act="aiOpen" data-box="${id}">${ic('chat')} AI에게 고쳐 달라고 하기</button>`;
   let body = '';
   if (p.status === 'loading') body = `<div class="prop" aria-busy="true"><span class="spin"></span> AI가 고친 안을 만드는 중…</div>`;
   else if (p.status === 'open') body = `<div class="prop"><div class="muted">요청: “${esc(p.req)}” · 아직 반영하지 않았습니다. 바뀌는 부분을 확인하세요.</div>
@@ -502,7 +517,7 @@ function aiBox(id, examples, ph) {
       <div class="row"><button class="btn sm pri" data-act="aiApply" data-box="${id}">${ic('check')} 반영</button><button class="btn sm" data-act="aiOther" data-box="${id}">다른 안 제안받기</button><button class="btn sm" data-act="aiCancel" data-box="${id}">반영 안 함</button></div></div>`;
   else if (p.status === 'done') body = `<div class="prop ok">${ic('check')} ${esc(p.msg)} <button class="btn sm" data-act="aiUndo" data-box="${id}">${ic('history')} 되돌리기</button></div>`;
   else if (p.status === 'none') body = `<div class="prop">${ic('info')} ${esc(p.msg)}</div>`;
-  return `<div class="aibox"><div class="lbl">${ic('chat')} AI에게 고쳐 달라고 하기</div>${body}
+  return `<div class="aibox"><div class="row"><span class="lbl grow" style="display:flex;gap:6px;align-items:center;margin:0">${ic('chat')} AI에게 고쳐 달라고 하기</span><button class="btn sm link" data-act="aiClose" data-box="${id}">접기</button></div>${body}
     <div class="row" style="margin:8px 0">${examples.map(e=>`<button class="ex2" data-act="aiEx" data-box="${id}" data-v="${esc(e)}">${esc(e)}</button>`).join('')}</div>
     <form class="row" data-act-submit="ai" data-box="${id}"><label class="sr" for="ai-${id}">요청</label><input type="text" id="ai-${id}" class="grow" placeholder="${esc(ph)}"><button class="btn">요청</button></form></div>`;
 }
@@ -678,7 +693,7 @@ const store = { get(k) { try { return JSON.parse(localStorage.getItem('acp.' + k
 const S = {
   view:'home', mode:'user', stage:1, adminTab:'prompts', web:true,
   checks:clone(CHECKS0), prompts:clone(PROMPTS0),
-  hideGuide: store.get('hideGuide') || {}, coachSeen: !!store.get('coachSeen'),
+  openGuide:{}, coachSeen: !!store.get('coachSeen'),
   s1:{ client:'', grade:'', method:'', topic:null },
   slots:{ story:null, task:null, guide:null }, draft:'none', structFile:null,
   blocks:clone(BLOCKS0), base:{}, cur:'d1', issues:[], history:[], impact:{},
@@ -687,7 +702,7 @@ const S = {
   form:'saved', fields:clone(FORM_FIELDS), linkPptx:true, report:false,
   reqs:REPORT_ROWS.filter(r => r.req).map(r => ({ ...r, on:true })), s4:'list',
   editCheck:null, editPrompt:1, confirmDel:null, loading:null,
-  ai:{}, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
+  ai:{}, aiOpen:{}, openDet:{}, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
   proposals:[], lessonSent:false, cps:null, cpIdx:0, storyText:'', rows:clone(REPORT_ROWS),
 };
 const resetBlocks = () => { S.blocks = clone(BLOCKS0); S.base = {}; S.blocks.forEach(b => S.base[b.id] = b.text); };
@@ -731,16 +746,16 @@ const STEPS = [
 ];
 function stageDone(n) { return (n===1&&!!S.s1.topic)||(n===2&&S.draft==='ready')||(n===3&&S.report)||(n===4&&S.s4==='edit'&&!S.issues.some(i=>i.check==='review'&&i.status==='open'))||(n===5&&S.issues.length>0&&!S.issues.some(i=>i.status==='open')); }
 function guideBox(n) {
-  if (S.hideGuide[n]) return `<div class="row" style="margin-bottom:12px"><button class="btn link" data-act="showGuide" data-v="${n}">${ic('info')} 이 단계에서 할 일 보기</button></div>`;
+  if (!S.openGuide[n]) return '';   // 평소에는 접어 두고, 머리의 [도움말]로 연다 (명세 2-4)
   return `<div class="guide">${ic('info','lg')}<div class="grow"><b>이 단계에서 할 일</b><ol>${STEPS[n-1].todo.map(t=>`<li>${t}</li>`).join('')}</ol></div>
-    <button class="btn sm" data-act="hideGuide" data-v="${n}" aria-label="안내 닫기">${ic('x')} 닫기</button></div>`;
+    <button class="btn sm" data-act="toggleGuide" aria-label="안내 닫기">${ic('x')} 닫기</button></div>`;
 }
 function stepNav(n) {
   const done = stageDone(n);
   return `<div class="stepnav">
     ${n > 1 ? `<button class="btn" data-act="stage" data-v="${n-1}">${ic('left')} 이전: ${STEPS[n-2].name}</button>` : `<button class="btn" data-act="home">${ic('left')} 처음 화면</button>`}
     <span class="grow"></span>
-    ${n < 5 ? `${done?'':`<span class="muted">이 단계를 마치지 않아도 넘어갈 수 있습니다.</span>`}<button class="btn ${done?'pri':''}" data-act="stage" data-v="${n+1}">다음: ${STEPS[n].name} ${ic('right')}</button>`
+    ${n < 5 ? (done ? `<button class="btn pri" data-act="stage" data-v="${n+1}">다음: ${STEPS[n].name} ${ic('right')}</button>` : '')
             : `<button class="btn" data-act="home">처음 화면으로 ${ic('right')}</button>`}</div>`;
 }
 function progressHTML() {
@@ -759,9 +774,9 @@ function runLoading(title, steps, note, done) {
 const ADMIN = [['prompts','지침 관리','book'],['checks','점검 항목 관리','check'],['db','자료·DB 관리','search'],['forms','양식·구조 관리','layout'],['settings','설정','sliders']];
 function render() {
   // 관리자 화면 버튼: 관리자 계정에만 보임 (시안의 체험 계정은 관리자)
-  $('modeBtn').innerHTML = S.mode === 'user'
+  $('modeBtn').innerHTML = (S.mode === 'user' && S.view === 'stage' ? `<button class="btn sm" data-act="toggleGuide" aria-pressed="${!!S.openGuide[S.stage]}">${ic('info')} 도움말</button> ` : '') + (S.mode === 'user'
     ? `<button class="btn sm" data-act="mode" data-v="admin" title="관리자 계정에만 보이는 버튼입니다">${ic('shield')} 관리자 화면</button>`
-    : `<button class="btn sm" data-act="mode" data-v="user">${ic('left')} 이용자 화면으로</button>`;
+    : `<button class="btn sm" data-act="mode" data-v="user">${ic('left')} 이용자 화면으로</button>`);
   $('crumb').textContent = S.mode === 'admin' ? '관리자 화면' : S.view === 'home' ? '' : (S.s1.topic ? `${(S.s1.topic.all || [S.s1.topic.title]).join(' / ')} · ${S.s1.method || '집단토론'}` : '새 과제');
   $('stepper').innerHTML = (S.mode === 'user' && S.view === 'stage') ? STEPS.map((s,i) => { const n = i+1, on = S.stage === n, done = stageDone(n);
     return `<li><button data-act="stage" data-v="${n}" class="${on?'on':''} ${done?'done':''}" ${on?'aria-current="step"':''}>
@@ -773,6 +788,8 @@ function render() {
   else if (S.loading) html = `${guideBox(S.stage)}${progressHTML()}`;
   else html = [v1,v2,v3,v4,v5][S.stage-1]();
   $('main').innerHTML = html;
+  const base = location.hash + S.s1.step + S.s1.taskIdx + S.s3step + S.cur + S.adminTab;
+  document.querySelectorAll('#main details.more').forEach((d, i) => { const k = base + i; if (S.openDet[k]) d.open = true; d.addEventListener('toggle', () => { S.openDet[k] = d.open; }); });
   document.querySelectorAll('input[type=text]').forEach(i => i.setAttribute('autocomplete', 'off'));
   const hash = S.mode === 'admin' ? '#admin-' + S.adminTab : S.view === 'home' ? '#home' : '#step-' + S.stage;
   if (location.hash !== hash) history.replaceState(null, '', hash);
@@ -807,12 +824,11 @@ function slotHTML(k, label, hint, accept = '') {
 }
 function vCp() {
   const cp = S.cps[S.cpIdx], last = S.cpIdx === S.cps.length - 1;
-  return `<div class="narrow">${guideBox(2)}<h1>초안 만들기: 확인 단계</h1>
-  <p class="lead">AI가 단계마다 멈추고 결과를 보여 줍니다. 확인하거나 고쳐 달라고 한 뒤 다음으로 넘어가세요.</p>
+  return `<div class="narrow"><h1>${esc(cp.title.replace(/^[A-Z]\d+\.\s*/, ''))} 확인</h1>
+  <p class="lead">AI가 만든 결과입니다. 맞으면 다음으로 넘어가세요. (${S.cpIdx+1} / ${S.cps.length})</p>${guideBox(2)}
   <div class="substeps" role="list">${S.cps.map((c,i)=>`<button role="listitem" data-act="cpGo" data-v="${i}" ${i===S.cpIdx?'aria-current="step"':''} ${i>0&&!S.cps[i-1].ok?'disabled':''}>${c.ok?ic('check'):''} ${i+1}. ${esc(c.title)}</button>`).join('')}<button disabled>${S.cps.length+1}. 초안 완성</button></div>
   <div class="card"><h3>${esc(cp.title)}</h3><div class="pre" style="margin-top:8px">${esc(cp.text)}</div></div>
   ${aiBox('cp', ['핵심 판단 지점을 하나 더 넣어 줘','난이도를 한 단계 낮춰 줘'], '이 단계 결과에서 고칠 점을 적으세요')}
-  <p class="help">확인 단계는 관리자 화면에 등록된 isomorph-ac 스킬의 ★정지 표시에서 가져옵니다.</p>
   <div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn pri" data-act="cpOk">${last?'확인하고 초안 완성':'확인하고 다음으로'} ${ic('right')}</button></div>${stepNav(2)}</div>`;
 }
 function v2() {
@@ -849,7 +865,6 @@ function editorHTML(stage) {
         <span>${esc(x.title)}</span>${n?`<span class="cnt">${n}<span class="sr">건 점검 결과</span></span>`:''}<span class="pg">${x.page?x.page+'쪽':''}</span></button>`;
     });
   });
-  tree += `<div class="legend"><span><span class="dot"></span> 고친 항목</span><span class="impc">${ic('alert')}<span style="color:var(--faint);margin-left:4px">함께 확인 필요</span></span><span><span class="cnt">2</span> 점검 결과 수</span></div>`;
   const summary = stage === 5 && open.length ? `<div class="summary">${S.checks.filter(c=>c.on&&c.where.includes(5)).map(c=>{
       const n = S.issues.filter(i=>i.check===c.id&&i.status==='open').length; return `<span class="tag" style="border-left:3px solid ${c.color}">${esc(c.name)} ${n}건</span>`; }).join('')}</div>` : '';
   const tabs = [['chat','채팅','chat'],['issues',`점검 결과 ${open.length}`,'alert'],['hist',`수정 기록 ${S.history.length}`,'history']];
@@ -860,19 +875,20 @@ function editorHTML(stage) {
       <button class="btn pri" data-act="coachOk">알겠습니다</button></div>`;
   return `
   ${stage===4?reqSummary():''}
-  ${coach}${summary}
+  ${coach}
   <div class="mtabs seg" role="group" aria-label="보기 전환">${[['tree','목차'],['doc','문서'],['side','채팅·결과']].map(([k,n])=>`<button data-act="mtab" data-v="${k}" aria-pressed="${S.mtab===k}">${n}</button>`).join('')}</div>
   <div class="ed">
     <section class="tree ${S.mtab!=='tree'?'mhide':''}" aria-label="목차">${tree}</section>
     <section class="${S.mtab!=='doc'?'mhide':''}" aria-label="문서">
       <div class="docbar">
-        <div class="row"><span class="lbl">점검</span>
+        <div class="row">
           <button class="btn sm ${stage===5?'pri':''}" data-act="runAll">${ic('check')} 전체 점검</button>
-          ${checks.map(c=>{ const n = open.filter(i=>i.check===c.id).length; return `<button class="ckbtn" style="--c:${c.color}" data-act="runCheck" data-v="${c.id}"><i></i>${esc(c.name)}${n?` <span class="cnt">${n}</span>`:''}</button>`; }).join('')}</div>
-        <div class="row"><span class="grow"></span>
-          <label class="switch" style="font-size:14px"><input type="checkbox" data-act="diff" ${S.diff?'checked':''}> 바뀐 부분 보기</label>
           <button class="btn sm" data-act="wholeEdit" title="AI가 평가과제와 평가자가이드 전체를 읽고 고칠 곳을 한꺼번에 제안합니다">${ic('edit')} 전체 수정 제안</button>
-          <button class="btn sm" data-act="export">${ic('download')} ${stage===2?'평가과제·가이드 받기':'pptx로 받기'}</button></div>
+          <span class="grow"></span>
+          <label class="switch" style="font-size:14px"><input type="checkbox" data-act="diff" ${S.diff?'checked':''}> 바뀐 부분 보기</label>
+          <button class="btn sm" data-act="export">${ic('download')} ${stage===2?'받기':'pptx로 받기'}</button></div>
+        <details class="more" style="margin:0"><summary>항목 골라 점검</summary><div class="row" style="margin-top:6px">
+          ${checks.map(c=>{ const n = open.filter(i=>i.check===c.id).length; return `<button class="ckbtn" style="--c:${c.color}" data-act="runCheck" data-v="${c.id}"><i></i>${esc(c.name)}${n?` <span class="cnt">${n}</span>`:''}</button>`; }).join('')}</div></details>
       </div>
       <div class="doc">
         ${S.impact[b.id]?`<div class="impact">${ic('alert')}<span class="grow"><b>함께 확인 필요</b> · ${esc(S.impact[b.id])}</span><button class="btn sm" data-act="impactOk">확인했습니다</button></div>`:''}
@@ -1003,11 +1019,11 @@ function v3b() {
       <option value="saved" ${S.form==='saved'?'selected':''}>○○시 5급 역량평가 · 과제 검토회의 결과 (저장된 양식, 칸 8개)</option>
       <option value="new" ${S.form==='new'?'selected':''}>새 양식 올리기 (hwpx)</option></select></div>
     ${S.form==='new'?`<label class="slot">${ic('upload','lg')}<span class="grow"><span class="t">양식 파일 (hwpx)</span><br><span class="s">hwp 양식은 한글에서 "다른 이름으로 저장 → hwpx"로 한 번 바꿔 올려 주세요. 이전 회차 내용이 들어 있으면 문체 예시로 씁니다.</span></span><span class="btn sm">파일 고르기</span><input type="file" data-slot="form" accept=".hwpx,.hwp"></label>`:''}
-    <div class="lbl" style="margin-top:8px">AI가 찾은 칸 <span class="muted" style="font-weight:400">— 칸마다 채우는 방법만 확인하세요</span></div>
-    <div class="tablewrap"><table class="t">${S.fields.map((f,i)=>`<tr><td>${esc(f.k)}<br><span class="muted">${esc(f.how)}</span></td>
+    <p style="margin-top:8px">AI가 양식에서 칸 ${S.fields.length}개를 찾았습니다. ${(() => { const e = S.fields.filter(f => f.v !== 'ai'); return e.length ? `${e.length}칸(${e.map(f => esc(f.k.replace(/^회의내용 표: /, ''))).join(', ')})은 AI가 채우지 않습니다.` : '모두 AI가 채웁니다.'; })()}</p>
+    <details class="more"><summary>${ic('edit')} 칸별로 고치기</summary><div class="tablewrap"><table class="t">${S.fields.map((f,i)=>`<tr><td>${esc(f.k)}<br><span class="muted">${esc(f.how)}</span></td>
       <td style="white-space:nowrap" role="radiogroup" aria-label="${esc(f.k)} 채우는 방법">${[['ai','AI가 채움'],['empty','비워 둠'],['manual','직접 입력']].map(([v,n])=>`<label class="switch" style="margin-right:10px"><input type="radio" name="f${i}" data-field="${i}" value="${v}" ${f.v===v?'checked':''}>${n}</label>`).join('')}</td></tr>`).join('')}</table></div>
     <label class="switch" style="margin-top:12px"><input type="checkbox" data-bind="linkPptx" ${S.linkPptx?'checked':''}> 평가과제 pptx(② 초안)로 위치 표기 맞추기</label>
-    <p class="help">예: 회의에서 "자료 3 두 번째 장"이라고 말한 것을 [자료3. 운영 현황(2/2), 7page]로 적습니다.</p>
+    <p class="help">예: 회의에서 "자료 3 두 번째 장"이라고 말한 것을 [자료3. 운영 현황(2/2), 7page]로 적습니다.</p></details>
     ${aiBox('fields', ['향후일정은 직접 입력으로 바꿔 줘','위치 행에 쪽 번호는 빼 줘'], '칸 채우는 방법에서 고칠 점을 적으세요')}
     ${S.roleWarn?`<div class="note">${ic('alert')}<span class="grow">${esc(S.roleWarn.join(', '))}의 구분(검토위원/발주처/개발사)을 먼저 정해 주세요. 구분이 있어야 의견 열을 나눠 채울 수 있습니다.</span><button class="btn sm" data-act="s3step" data-v="1">화자 정보 고치러 가기</button></div>`:''}
   </div>
@@ -1055,7 +1071,7 @@ function v4() {
     ${S.reqs.map((r,i)=>`<div class="card"><label class="row" style="align-items:flex-start;gap:12px"><input type="checkbox" data-req="${i}" ${r.on?'checked':''} style="margin-top:4px">
       <span class="grow"><b>${esc(r.loc)}</b> ${r.conflict?`<span class="tag warn">${ic('alert')} 의견 엇갈림</span>`:''}<br>
       <span>검토위원: ${esc(r.op)}</span><br>${r.cl?`<span>발주처: ${esc(r.cl)}</span><br>`:''}<span class="muted">반영 방향: ${esc(r.plan)}</span><br>
-      <span class="muted">근거 발언 ${TRANSCRIPT0[r.src].t}${r.ref?` · 참고: ${esc(r.ref.replace(/^참고:\s*/,''))}`:''}</span></span></label></div>`).join('')}
+      <span class="muted">근거 발언 ${TRANSCRIPT0[r.src].t}</span></span></label></div>`).join('')}
     ${aiBox('reqs', ['마지막 요청을 둘로 나눠 줘','발주처 의견이 있는 요청만 남겨 줘'], '요청 목록에서 고칠 점을 적으세요 (나누기, 합치기, 고르기)')}
     <button class="btn pri big" data-act="makeFixes" ${n?'':'disabled aria-describedby="why4"'}>고친 안 만들기 (${n}건)</button>
     ${n?'':'<p class="help" id="why4">반영할 요청을 하나 이상 체크해 주세요.</p>'}
@@ -1225,8 +1241,7 @@ const ACT = {
   openSample: () => { S.view = 'stage'; S.stage = 4; S.draft = 'ready'; S.report = true; S.s1.topic = S.s1.topic || { title:'공영자전거 사업 재정비', all:['공영자전거 사업 재정비'] }; render(); },
   mode: el => { S.mode = el.dataset.v; render(); },
   stage: el => { S.view = 'stage'; S.stage = +el.dataset.v; S.scope = null; S.diff = false; render(); window.scrollTo(0,0); },
-  hideGuide: el => { S.hideGuide[el.dataset.v] = true; store.set('hideGuide', S.hideGuide); render(); },
-  showGuide: el => { delete S.hideGuide[el.dataset.v]; store.set('hideGuide', S.hideGuide); render(); },
+  toggleGuide: () => { S.openGuide[S.stage] = !S.openGuide[S.stage]; render(); window.scrollTo(0, 0); },
   coachOk: () => { S.coachSeen = true; store.set('coachSeen', true); render(); },
   fillSlots: () => { S.slots.story = S.slots.story || '스토리맵_공영자전거.md'; S.slots.task = '2029_집단토론_평가과제.pptx'; S.slots.guide = '2029_집단토론_평가자가이드.pptx'; render(); },
   makeDraft: () => runLoading('참조 과제를 읽는 중…', ['참조 평가과제의 목차 읽기','참조 평가자가이드 읽기','첫 확인 단계 결과 만들기'], '확인 단계마다 멈추고 결과를 보여 줍니다.', () => { S.cps = parseCheckpoints(); S.cpIdx = 0; S.ai.cp = null; S.draft = S.cps.length ? 'cp' : 'ready'; }),
@@ -1310,6 +1325,8 @@ const ACT = {
     S.proposals.push({ id:S.proposals.length + 1, pid:2, skill:'isomorph-ac', file:f, from:`④ 검토의견 반영 · ${S.s1.topic ? S.s1.topic.title : '과제'}`, before, after:before + LESSON_ADD, status:'open' });
     S.lessonSent = true; render(); toast('관리자에게 스킬 수정을 제안했습니다. 관리자 화면 > 지침 관리에서 볼 수 있습니다.'); },
   aiEx: el => aiRequest(el.dataset.box, el.dataset.v),
+  aiOpen: el => { S.aiOpen[el.dataset.box] = true; render(); const i = $('ai-' + el.dataset.box); i && i.focus(); },
+  aiClose: el => { S.aiOpen[el.dataset.box] = false; S.ai[el.dataset.box] = null; render(); },
   aiApply: el => { const id = el.dataset.box, f = AI_FN[id]; if (!f) return; f.apply(); S.ai[id] = { status:'done', msg:'반영했습니다.' }; render(); },
   aiOther: el => { const id = el.dataset.box, p = S.ai[id]; if (p) aiRequest(id, p.req, (p.v || 0) + 1); },
   aiCancel: el => { S.ai[el.dataset.box] = { status:'none', msg:'반영하지 않았습니다.' }; render(); },
@@ -1423,121 +1440,119 @@ function deriveCond() {   // 1단계: 기출에서 평가 조건 찾기
 function s1Steps() { const n = S.s1.cond ? S.s1.cond.tasks.length : 1;
   return [['input','조건 입력'],['cond','평가 조건 확인'],['struct','기출 구조 분석'], ...Array.from({ length:n }, (_, i) => ['task' + i, `해결과제 ${i+1}`]), ['confirm','전체 확정'],['story','스토리맵']]; }
 function s1StepKey() { return S.s1.step === 'task' ? 'task' + S.s1.taskIdx : S.s1.step; }
-function s1Nav() {
-  const st = s1Steps(), cur = st.findIndex(x => x[0] === s1StepKey());
-  return `<div class="substeps" role="list" aria-label="주제 탐색 단계">${st.map(([k,t],i)=>`<button role="listitem" data-act="s1go" data-v="${k}" ${i===cur?'aria-current="step"':''} ${i>S.s1.reached?'disabled':''}>${i<cur||i<S.s1.reached&&i!==cur?ic('check'):''} ${i+1}. ${t}</button>`).join('')}</div>`;
+function s1Nav() {   // 단계 버튼 대신 한 줄 진행 표시 (명세 2-4)
+  const st = s1Steps(), cur = Math.max(0, st.findIndex(x => x[0] === s1StepKey())), prev = st[cur - 1];
+  return `<div class="progline"><span class="muted">단계 ${cur+1} / ${st.length}</span> <b>${esc(st[cur][1])}</b>
+    ${prev && S.s1.step !== 'input' ? `<button class="btn link" data-act="s1go" data-v="${prev[0]}">${ic('left')} ${esc(prev[1])}(으)로</button>` : ''}
+    <div class="bar" aria-hidden="true"><i style="width:${Math.round((cur+1)/st.length*100)}%"></i></div></div>`;
 }
 function tasksLine() { const f = S.s1.tasks.filter(t => t.fixed); if (!f.length) return '';
-  return `<div class="card" style="padding:10px 14px"><div class="lbl" style="font-size:13px">고정한 해결과제</div>${f.map(t=>`<div>해결과제 ${t.no}. <b>${esc(t.fixed.name)}</b> <span class="muted">측정 역량: ${esc(t.comps.join(', '))}</span></div>`).join('')}${S.s1.org?`<div class="muted">가상조직: ${esc(S.s1.org)}</div>`:''}</div>`; }
-
+  return `<p class="muted" style="margin-bottom:10px">고정함: ${f.map(t=>`해결과제 ${t.no} <b style="color:var(--text)">${esc(t.fixed.name)}</b>`).join(' · ')}</p>`; }
+const S1_ASK = { input:'평가할 발주처, 직급, 평가 기법을 고르세요.', cond:'기출에서 찾은 평가 조건입니다. 맞으면 진행하세요.', struct:'기출 과제의 구조를 정리했습니다. 맞으면 진행하세요.',
+  task:'후보 가운데 하나를 골라 고정하세요.', confirm:'아래 내용으로 스토리맵을 쓸까요?', story:'스토리맵을 확인하고 과제 초안으로 넘기세요.' };
 function v1() {
   const s = S.s1;
   const body = { input:v1Input, cond:v1Cond, struct:v1Struct, task:v1Task, confirm:v1Confirm, story:v1Story }[s.step]();
-  return `<div class="narrow" style="max-width:900px">${guideBox(1)}<h1>주제 탐색</h1>
-    <p class="lead">ac-topic-storymap 스킬의 순서대로 진행합니다. 단계마다 결과를 확인하고 넘어갑니다.</p>${s1Nav()}${body}${stepNav(1)}</div>${previewHTML()}`;
+  return `<div class="narrow">${s1Nav()}<h1>${s.step === 'task' ? `해결과제 ${s.taskIdx+1} 고르기` : esc(s1Steps().find(x => x[0] === s1StepKey())[1])}</h1>
+    <p class="lead">${S1_ASK[s.step]}</p>${guideBox(1)}${body}${stepNav(1)}</div>${previewHTML()}`;
 }
 function v1Input() {
   const s = S.s1, cl = clientsList(), gr = s.client ? gradesFor(s.client) : [];
-  const methods = ['서류함','역할수행','발표','집단토론'], cnt = m => s.client && s.grade ? histFor(s.client, s.grade, m).length : 0;
   const miss = [['발주처', s.client], ['직급', s.grade], ['평가 기법', s.method]].filter(x => !x[1]).map(x => x[0]);
   return `<div class="card">
     <div class="row" style="gap:12px;align-items:flex-start">
       <div class="field grow"><label for="f-client">발주처<span class="req">필수</span></label>
-        <select id="f-client" data-s1="client"><option value="">고르세요</option>${cl.map(c=>`<option ${c===s.client?'selected':''}>${esc(c)}</option>`).join('')}</select>
-        <div class="help">자료·DB의 기출 DB와 주제풀에 있는 발주처입니다.</div></div>
+        <select id="f-client" data-s1="client"><option value="">고르세요</option>${cl.map(c=>`<option ${c===s.client?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
       <div class="field grow"><label for="f-grade">직급<span class="req">필수</span></label>
-        <select id="f-grade" data-s1="grade" ${s.client?'':'disabled'}><option value="">${s.client?'고르세요':'발주처를 먼저 고르세요'}</option>${gr.map(g=>`<option ${g===s.grade?'selected':''}>${esc(g)}</option>`).join('')}</select>
-        <div class="help">고른 발주처의 직급만 나옵니다.</div></div>
+        <select id="f-grade" data-s1="grade" ${s.client?'':'disabled'}><option value="">${s.client?'고르세요':'발주처를 먼저 고르세요'}</option>${gr.map(g=>`<option ${g===s.grade?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
     </div>
-    <div class="field"><span class="lbl">평가 기법<span class="req">필수</span></span><div class="row" role="group" aria-label="평가 기법">${methods.map(m=>`<button class="chip" aria-pressed="${s.method===m}" data-act="s1method" data-v="${m}">${m}${s.client&&s.grade?` <span class="muted">기출 ${cnt(m)}건</span>`:''}</button>`).join('')}</div></div>
-    <p class="help">발주처·직급 목록에 없으면 관리자에게 자료·DB에 추가해 달라고 요청하세요.</p></div>
+    <div class="field" style="margin-bottom:0"><span class="lbl">평가 기법<span class="req">필수</span></span><div class="row" role="group" aria-label="평가 기법">${['서류함','역할수행','발표','집단토론'].map(m=>`<button class="chip" aria-pressed="${s.method===m}" data-act="s1method" data-v="${m}">${m}</button>`).join('')}</div></div>
+  </div>
   <div class="row"><span class="grow"></span>${miss.length?`<span class="muted" id="why1">${miss.join(', ')}을(를) 골라 주세요.</span>`:''}
-    <button class="btn pri" data-act="s1cond" ${miss.length?'disabled aria-describedby="why1"':''}>평가 조건 찾기 ${ic('right')}</button></div>`;
+    <button class="btn pri" data-act="s1cond" ${miss.length?'disabled aria-describedby="why1"':''}>다음 ${ic('right')}</button></div>`;
 }
 function v1Cond() {
   const s = S.s1, c = s.cond, comps = [...new Set(S.db.comp.filter(r => r[0] === s.client && r[1] === s.grade).map(r => r[2]))];
   const pool = comps.length ? comps : ALL_COMPS, poolRows = S.db.pool.filter(r => r[0] === s.client && r[1] === s.grade);
   const unselected = poolRows.filter(r => r[4] === '미선정').length, practice = S.db.practice.filter(r => r[0] === s.client && r[1] === '2031');
   const qs = [];
-  if (unselected) qs.push(['unsel', `발주처 주제풀에 미선정 제안안이 ${unselected}건 있습니다. 미선정 제안안도 중복 배제 대상에 넣을까요?`, ['넣음','넣지 않음']]);
-  if (c.rel === '무관' && !practice.length) qs.push(['practice', '2031년 실무 DB가 없습니다. 발주처 실무와 겹치는지 대조하려면 실무 DB가 필요합니다. 만들까요?', ['만듦','이번에는 건너뜀']]);
-  const left = qs.filter(q => !s.answers[q[0]]).length;
-  return `${c.found ? `<div class="note" style="background:var(--accent-soft);color:var(--text)">${ic('info')}<span>기존 출제 이력(기출 ${c.n}건, 최근 ${c.year}년)을 참고한 결과, 다음 조건으로 진행합니다. 근거: ${fileLink(c.file)}</span></div>`
-      : `<div class="note">${ic('alert')}<span>${esc(s.client)} ${esc(s.grade)} ${esc(s.method)} 기출이 없습니다.${c.other.length?` 같은 발주처·직급의 다른 기출: ${esc(c.other.join(', '))}.`:''} 조건을 직접 정해 주세요.</span></div>`}
-  <div class="card"><div class="tablewrap"><table class="t">
-    <tr><th style="width:170px">항목</th><th>내용</th><th style="width:96px">근거</th></tr>
-    <tr><td>해결과제 개수</td><td><select data-s1c="n" style="width:auto">${[1,2,3,4].map(n=>`<option ${n===c.tasks.length?'selected':''}>${n}</option>`).join('')}</select></td><td>${tagB(c.tag)}</td></tr>
-    ${c.tasks.map((t,i)=>`<tr><td>해결과제 ${i+1} 측정 역량</td><td><div class="row">${pool.map(m=>`<button class="chip sm" aria-pressed="${t.comps.includes(m)}" data-act="s1comp" data-i="${i}" data-v="${esc(m)}">${esc(m)}</button>`).join('')}</div></td><td>${tagB(c.tag)}</td></tr>`).join('')}
-    <tr><td>업무 관련성</td><td><div class="row">${['유관','무관'].map(v=>`<label class="switch"><input type="radio" name="rel" data-s1c="rel" value="${v}" ${c.rel===v?'checked':''}> ${v}</label>`).join(' ')}</div></td><td>${tagB('추론')}</td></tr>
-    <tr><td>가상조직 기관 유형</td><td><select data-s1c="orgType">${['지자체(가상 도시)','중앙부처','공공기관'].map(v=>`<option ${c.orgType===v?'selected':''}>${v}</option>`).join('')}</select></td><td>${tagB('추론')}</td></tr>
-    <tr><td>해결과제 간 소재 연결</td><td><select data-s1c="link">${['같은 상위 분야 안에서 사업·쟁점이 다를 것','한 소재를 이어 씀'].map(v=>`<option ${c.link===v?'selected':''}>${v}</option>`).join('')}</select></td><td>${tagB('설정 문서')}</td></tr>
-    <tr><td>역량 정의 출처</td><td>${comps.length?`역량 정의 DB (${esc(s.client)} ${esc(s.grade)}, ${comps.length}개 역량)`:'역량 정의 DB에 없음 — 정의 자료를 요청해야 합니다.'}</td><td>${tagB(comps.length?'DB 확인':'확인 불가')}</td></tr>
-    <tr><td>중복 배제 자료</td><td>기출 DB ${histFor(s.client, s.grade).length}건 · 발주처 주제풀 ${poolRows.length}건${poolRows[0]?' · '+fileLink(poolRows[0][5]):''}${c.rel==='무관'?` · 실무 DB ${practice.length?'2031':'없음'}`:''}</td><td>${tagB('DB 확인')}</td></tr>
-  </table></div>
-  <p class="help">근거 표시: ${tagB('DB 확인')} 자료에서 확인 · ${tagB('설정 문서')} 용역 설정 문서 · ${tagB('추론')} AI 판단 · ${tagB('확인 불가')} 자료 없음</p></div>
-  ${qs.length?`<div class="card" style="border-color:var(--warn-t)"><div class="lbl">${ic('alert')} 확인해야 할 사항 ${qs.length}건</div>${qs.map(([k,q,opts])=>`<div style="margin-top:8px"><div>${esc(q)}</div><div class="row" role="radiogroup" aria-label="${esc(q)}">${opts.map(o=>`<label class="switch" style="margin-right:12px"><input type="radio" name="q-${k}" data-s1q="${k}" value="${o}" ${s.answers[k]===o?'checked':''}> ${o}</label>`).join('')}</div></div>`).join('')}</div>`:''}
-  ${aiBox('cond', ['해결과제를 3개로 늘려 줘','해결과제 2의 측정 역량을 조정·통합만 남겨 줘'], '평가 조건에서 고칠 점을 적으세요')}
-  <div class="row"><span class="grow"></span>${left?`<span class="muted" id="whyc">확인해야 할 사항 ${left}건에 답해 주세요.</span>`:''}${c.tasks.some(t=>!t.comps.length)?`<span class="muted">측정 역량이 빈 해결과제가 있습니다.</span>`:''}
-    <button class="btn pri" data-act="s1struct" ${left||c.tasks.some(t=>!t.comps.length)?'disabled':''}>조건 확인, 다음 ${ic('right')}</button></div>`;
+  if (unselected) qs.push(['unsel', `주제풀의 미선정 제안안 ${unselected}건도 겹치면 안 되는 주제로 볼까요?`, ['예','아니오']]);
+  if (c.rel === '무관' && !practice.length) qs.push(['practice', '발주처 실무와 겹치는지 보려면 올해 실무 자료가 필요합니다. 만들까요?', ['만듦','이번에는 건너뜀']]);
+  const left = qs.filter(q => !s.answers[q[0]]).length, emptyComp = c.tasks.some(t => !t.comps.length);
+  return `${c.found ? '' : `<div class="note">${ic('alert')}<span>이 조합의 기출이 없어 조건을 직접 정해야 합니다. 아래 [조건 고치기]를 눌러 주세요.</span></div>`}
+  <div class="card">
+    ${c.tasks.map((t,i)=>`<div class="sumrow"><span class="muted">해결과제 ${i+1}</span><span>${t.comps.length?esc(t.comps.join(', ')):'<span class="warnc">측정 역량을 정해 주세요</span>'}</span></div>`).join('')}
+    <div class="sumrow"><span class="muted">업무 관련성</span><span>${esc(c.rel)} · 가상조직 ${esc(c.orgType)}</span></div>
+    <details class="more" ${S.s1.condOpen||emptyComp?'open':''}><summary data-act="toggleCond">${ic('edit')} 조건 고치기</summary>
+      <div class="tablewrap" style="margin-top:8px"><table class="t">
+        <tr><td style="width:160px">해결과제 개수</td><td><select data-s1c="n" style="width:auto">${[1,2,3,4].map(n=>`<option ${n===c.tasks.length?'selected':''}>${n}</option>`).join('')}</select></td></tr>
+        ${c.tasks.map((t,i)=>`<tr><td>해결과제 ${i+1} 측정 역량</td><td><div class="row">${pool.map(m=>`<button class="chip sm" aria-pressed="${t.comps.includes(m)}" data-act="s1comp" data-i="${i}" data-v="${esc(m)}">${esc(m)}</button>`).join('')}</div></td></tr>`).join('')}
+        <tr><td>업무 관련성</td><td>${['유관','무관'].map(v=>`<label class="switch" style="margin-right:12px"><input type="radio" name="rel" data-s1c="rel" value="${v}" ${c.rel===v?'checked':''}> ${v}</label>`).join('')}</td></tr>
+        <tr><td>가상조직 기관 유형</td><td><select data-s1c="orgType">${['지자체(가상 도시)','중앙부처','공공기관'].map(v=>`<option ${c.orgType===v?'selected':''}>${v}</option>`).join('')}</select></td></tr>
+        <tr><td>해결과제 간 소재</td><td><select data-s1c="link">${['같은 상위 분야 안에서 사업·쟁점이 다를 것','한 소재를 이어 씀'].map(v=>`<option ${c.link===v?'selected':''}>${v}</option>`).join('')}</select></td></tr>
+      </table></div>
+      ${aiBox('cond', ['해결과제를 3개로 늘려 줘','해결과제 2의 측정 역량을 조정·통합만 남겨 줘'], '평가 조건에서 고칠 점을 적으세요')}</details>
+    <details class="more"><summary>${ic('file')} 근거 보기</summary>
+      <p class="help" style="margin-top:6px">${c.found?`기출 ${c.n}건, 최근 ${c.year}년 기준 ${fileLink(c.file)}`:'같은 조합의 기출 없음'}</p>
+      <p class="help">겹침을 확인할 자료: 기출 ${histFor(s.client, s.grade).length}건 · 주제풀 ${poolRows.length}건${poolRows[0]?' '+fileLink(poolRows[0][5]):''}</p>
+      <p class="help">역량 정의: ${comps.length?`${esc(s.client)} ${esc(s.grade)} 역량 정의 자료`:'자료 없음 (관리자에게 요청)'}</p></details>
+  </div>
+  ${qs.map(([k,q,opts])=>`<div class="card" style="border-color:var(--accent)"><div class="lbl">${esc(q)}</div><div class="row" role="radiogroup" aria-label="${esc(q)}">${opts.map(o=>`<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="radio" name="q-${k}" data-s1q="${k}" value="${o}" ${s.answers[k]===o?'checked':''}> ${o}</label>`).join('')}</div></div>`).join('')}
+  <div class="row"><span class="grow"></span>${left?`<span class="muted" id="whyc">위 질문에 답해 주세요.</span>`:emptyComp?`<span class="muted">측정 역량을 정해 주세요.</span>`:''}
+    <button class="btn pri" data-act="s1struct" ${left||emptyComp?'disabled':''}>이 조건으로 진행 ${ic('right')}</button></div>`;
 }
 function v1Struct() {
-  const s = S.s1, st = S.settings.find(x => x.name === `용역설정_${s.client}_${s.grade}_${s.method}.md`), now = dbInfo();
-  const same = st && st.base.rows === now.rows && st.base.recent === now.recent && st.base.sig === now.sig;
-  const rows = histFor(s.client, s.grade, s.method).slice(0, 3);
-  return `${st ? `<div class="note" style="${same?'background:var(--ok-soft);color:var(--ok)':''}">${ic(same?'check':'info')}<span>${same ? `용역 설정 문서(${esc(st.name)})의 DB 기준 정보가 지금과 같아, 저장된 분석 결과를 그대로 씁니다.`
-      : `용역 설정 문서의 DB 기준 정보(${st.base.rows}행 · 최근 ${st.base.recent})와 지금 DB(${now.rows}행 · 최근 ${now.recent})가 달라 구조를 다시 분석했습니다.`}</span></div>`
-      : `<div class="note" style="background:var(--accent-soft);color:var(--text)">${ic('info')}<span>이 용역의 설정 문서가 없어 기출 구조를 새로 분석했습니다. 확인하면 설정 문서로 저장해 다음 회차에 다시 씁니다.</span></div>`}
-  <div class="card"><div class="lbl">관찰한 특징 ${tagB('DB 확인')}</div>
-    <p>• 해결과제마다 가상조직 안의 서로 다른 과가 맡은 사업을 다룬다.</p><p>• 과마다 제안이 달라 예산 안에서 고르는 딜레마가 있다.</p><p>• 자료는 공통 3~4개 + 역할별 1~2개, 총 10~12쪽이다.</p>
-    <div class="tablewrap" style="margin-top:10px"><table class="t"><tr><th>구조 항목</th><th>기출에서 본 모습</th></tr>
-      ${S.structRows.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table></div>
-    <div class="help" style="margin-top:8px">근거 기출: ${rows.map(r=>fileLink(r[5])).join(' ') || '없음'}</div></div>
+  const s = S.s1, rows = histFor(s.client, s.grade, s.method).slice(0, 3), g = k => (S.structRows.find(r => r[0] === k) || [])[1];
+  return `<div class="card">
+    <div class="sumrow"><span class="muted">과제 단위</span><span>${esc(g('과제 단위'))}</span></div>
+    <div class="sumrow"><span class="muted">대립 구조</span><span>${esc(g('딜레마 구조'))}</span></div>
+    <div class="sumrow"><span class="muted">규모</span><span>${esc(g('규모'))}</span></div>
+    <details class="more"><summary>${ic('list')} 자세히 보기</summary>
+      <div class="tablewrap" style="margin-top:8px"><table class="t">${S.structRows.map(([k,v])=>`<tr><td style="width:140px">${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table></div>
+      <p class="help">근거 기출: ${rows.map(r=>fileLink(r[5])).join(' ') || '없음'}</p></details>
+  </div>
   ${aiBox('struct1', ['규모를 사업비 10억 원 안팎으로 바꿔 줘','추가 관찰 특징을 더 찾아 줘'], '구조 분석에서 고칠 점을 적으세요')}
-  <div class="row"><span class="grow"></span><button class="btn pri" data-act="s1structOk">${same?'확인, 다음':'확인하고 용역 설정에 저장'} ${ic('right')}</button></div>`;
+  <div class="row"><span class="grow"></span><button class="btn pri" data-act="s1structOk">맞습니다, 후보 보기 ${ic('right')}</button></div>`;
 }
 function v1Task() {
   const s = S.s1, t = s.tasks[s.taskIdx], list = t.cands, first = s.taskIdx === 0;
-  return `${tasksLine()}
-  <h2 style="margin-top:4px">해결과제 ${t.no} 후보 ${list.length}개 <span class="muted">· 측정 역량: ${esc(t.comps.join(', '))}</span></h2>
-  <p class="muted" style="margin-bottom:10px">${first?'첫 해결과제는 가상조직과 상위 분야까지 정하므로 서로 다른 분야의 후보를 냅니다.':`고정한 가상조직(${esc(s.org)})이 맡을 만한 다른 업무로 후보를 냅니다. 시안에서는 해결과제 1에서 무엇을 골라도 같은 예시 후보가 나옵니다.`}</p>
-  ${list.map((c,i)=>{ const ed = s.editCand === i; return `<div class="card cand">
-    <div class="row"><span class="tag">${esc(c.field)}</span><span class="tag ${c.dup.verdict==='통과'?'ok':'warn'}">소재 ${esc(c.dup.verdict)}</span>${c.check!=='걸린 항목 없음'?`<span class="tag warn">${ic('alert')} 점검표</span>`:''}</div>
-    ${ed ? `<div class="field" style="margin-top:8px"><label for="ce-name">해결과제명</label><input type="text" id="ce-name" value="${esc(c.name)}"></div>
-            <div class="field"><label for="ce-content">내용</label><textarea id="ce-content">${esc(c.content)}</textarea></div>`
-         : `<h3 style="margin-top:6px">후보 ${i+1}. ${esc(c.name)}</h3>`}
-    <div class="tablewrap" style="margin-top:6px"><table class="t">
-      <tr><th style="width:130px">가상조직</th><td>${esc(first ? c.org : s.org)}</td></tr>
-      <tr><th>해결과제명</th><td>${esc(c.name)}</td></tr>
-      <tr><th>측정 역량</th><td>${esc(t.comps.join(', '))}</td></tr>
-      ${ed?'':`<tr><th>내용</th><td>${esc(c.content)}</td></tr>`}
-      <tr><th>역량 측정 연관성</th><td>${esc(c.device)}</td></tr>
-      <tr><th>구조 대조</th><td>${esc(c.struct)}</td></tr>
-      <tr><th>소재 판정</th><td>${esc(c.dup.verdict)} — ${esc(c.dup.diff)}${c.dup.near.length?`<div class="help">가장 가까운 자료: ${c.dup.near.map(([n,f])=>`${esc(n)} ${fileLink(f)}`).join('<br>')}</div>`:''}</td></tr>
-      <tr><th>점검표</th><td>${esc(c.check)}</td></tr></table></div>
-    <div class="row" style="margin-top:10px"><span class="grow"></span>
-      ${ed ? `<button class="btn" data-act="s1editNo">취소</button><button class="btn pri" data-act="s1fixEdited" data-v="${i}">고친 내용으로 고정</button>`
-           : `<button class="btn" data-act="s1edit" data-v="${i}">${ic('edit')} 고쳐서 고정</button><button class="btn" data-act="s1fix" data-v="${i}">${ic('check')} 이 후보로 고정</button>`}</div></div>`; }).join('')}
-  ${aiBox('cands', ['환경 분야는 빼고 다시 만들어 줘','후보 2를 더 구체적으로 써 줘'], '후보에서 고칠 점을 적으세요')}`;
+  return `${tasksLine()}<p style="margin-bottom:10px">측정 역량: <b>${esc(t.comps.join(', '))}</b></p>
+  <div role="radiogroup" aria-label="해결과제 ${t.no} 후보">
+  ${list.map((c,i)=>{ const ed = s.editCand === i, on = s.pick === i; return `<div class="card pickc ${on?'on':''}">
+    ${ed ? `<div class="field"><label for="ce-name">해결과제명</label><input type="text" id="ce-name" value="${esc(c.name)}"></div>
+            <div class="field"><label for="ce-content">내용</label><textarea id="ce-content">${esc(c.content)}</textarea></div>
+            <div class="row"><span class="grow"></span><button class="btn" data-act="s1editNo">취소</button><button class="btn pri" data-act="s1fixEdited" data-v="${i}">고친 내용으로 고정</button></div>`
+    : `<label class="pickhead"><input type="radio" name="cand" data-pick="${i}" ${on?'checked':''}>
+        <span class="grow"><b class="ttl">${esc(c.name)}</b> <span class="tag ${c.dup.verdict==='통과'?'ok':'warn'}">${c.dup.verdict==='통과'?'기출과 안 겹침':'기출과 겹침 주의'}</span>${c.check!=='걸린 항목 없음'?` <span class="tag warn">점검 주의</span>`:''}
+        <br><span class="muted">${esc(c.content)}</span></span></label>
+      <details class="more"><summary>${ic('list')} 자세히 보기</summary><div class="tablewrap" style="margin-top:6px"><table class="t">
+        <tr><th style="width:120px">가상조직</th><td>${esc(first ? c.org : s.org)}</td></tr>
+        <tr><th>역량 측정 연관성</th><td>${esc(c.device)}</td></tr>
+        <tr><th>구조 대조</th><td>${esc(c.struct)}</td></tr>
+        <tr><th>기출과 비교</th><td>${esc(c.dup.diff)}${c.dup.near.length?`<div class="help">${c.dup.near.map(([n,f])=>`${esc(n)} ${fileLink(f)}`).join('<br>')}</div>`:''}</td></tr>
+        <tr><th>점검표</th><td>${esc(c.check)}</td></tr></table></div>
+        <div class="row" style="margin-top:6px"><button class="btn sm" data-act="s1edit" data-v="${i}">${ic('edit')} 고쳐서 고정</button></div></details>`}
+  </div>`; }).join('')}</div>
+  ${aiBox('cands', ['환경 분야는 빼고 다시 만들어 줘','후보 2를 더 구체적으로 써 줘'], '후보에서 고칠 점을 적으세요')}
+  <div class="row"><span class="grow"></span>${s.pick==null?`<span class="muted" id="whyp">후보를 하나 골라 주세요.</span>`:''}
+    <button class="btn pri" data-act="s1fixPick" ${s.pick==null?'disabled aria-describedby="whyp"':''}>고른 후보로 고정 ${ic('right')}</button></div>`;
 }
 function v1Confirm() {
   const s = S.s1;
-  return `<div class="card"><h3>모든 해결과제가 확정되었습니다.</h3>
-    <div class="tablewrap" style="margin-top:10px"><table class="t"><tr><th>항목</th><th>내용</th></tr>
-      <tr><td>발주처 · 직급 · 기법</td><td>${esc(s.client)} · ${esc(s.grade)} · ${esc(s.method)}</td></tr>
-      <tr><td>가상조직</td><td>${esc(s.org)}</td></tr>
-      ${s.tasks.map(t=>`<tr><td>해결과제 ${t.no}</td><td><b>${esc(t.fixed.name)}</b><br><span class="muted">측정 역량: ${esc(t.comps.join(', '))}</span></td></tr>`).join('')}</table></div></div>
-  <div class="row"><button class="btn" data-act="s1go" data-v="task${s.tasks.length-1}">${ic('left')} 해결과제 다시 고르기</button><span class="grow"></span>
-    <span class="muted">승인 전에는 스토리맵을 쓰지 않습니다.</span><button class="btn pri" data-act="s1story">이대로 스토리맵 작성 시작 ${ic('right')}</button></div>`;
+  return `<div class="card">
+    <div class="sumrow"><span class="muted">발주처</span><span>${esc(s.client)} ${esc(s.grade)} · ${esc(s.method)}</span></div>
+    <div class="sumrow"><span class="muted">가상조직</span><span>${esc(s.org)}</span></div>
+    ${s.tasks.map(t=>`<div class="sumrow"><span class="muted">해결과제 ${t.no}</span><span><b>${esc(t.fixed.name)}</b><br><span class="muted">${esc(t.comps.join(', '))}</span></span></div>`).join('')}</div>
+  <div class="row"><span class="grow"></span><button class="btn pri" data-act="s1story">스토리맵 쓰기 ${ic('right')}</button></div>`;
 }
 function v1Story() {
   const s = S.s1, comp = (m) => (S.db.comp.find(r => r[0] === s.client && r[1] === s.grade && r[2] === m) || [])[3] || '(정의 자료 없음)';
-  return `<p class="muted" style="margin-bottom:8px">형식 기준: ${fileLink((histFor(s.client, s.grade, s.method)[0] || [])[5])} 의 스토리맵 형식을 따랐습니다.</p>
-  <div class="card">${storyHTML(S.storyText)}</div>
-  <div class="card"><div class="lbl">▶ 역량-내용 연계 분석 <span class="muted" style="font-weight:400">내부 검토용. 검토위원 제출본에서는 뺄 수 있습니다.</span></div>
-    <div class="tablewrap"><table class="t"><tr><th>해결과제</th><th>역량</th><th>하위요소</th><th>배경상황 속 대응 장치</th></tr>
-    ${s.tasks.map(t=>t.comps.map((m,j)=>`<tr>${j?'':`<td rowspan="${t.comps.length}">${t.no}. ${esc(t.fixed.name)}</td>`}<td>${esc(m)}</td><td>${esc(comp(m))}</td><td>${esc((t.fixed.device.split('·')[j]||'명확한 장치 없음').trim())}</td></tr>`).join('')).join('')}</table></div></div>
+  return `<div class="card">${storyHTML(S.storyText)}
+    <details class="more"><summary>${ic('list')} 역량-내용 연계 분석 (내부 검토용)</summary>
+    <div class="tablewrap" style="margin-top:6px"><table class="t"><tr><th>해결과제</th><th>역량</th><th>하위요소</th><th>대응 장치</th></tr>
+    ${s.tasks.map(t=>t.comps.map((m,j)=>`<tr>${j?'':`<td rowspan="${t.comps.length}">${t.no}. ${esc(t.fixed.name)}</td>`}<td>${esc(m)}</td><td>${esc(comp(m))}</td><td>${esc((t.fixed.device.split('·')[j]||'명확한 장치 없음').trim())}</td></tr>`).join('')).join('')}</table></div></details></div>
   ${aiBox('story', ['역할 간 갈등을 더 분명하게 해 줘','평가대상자를 3명으로 늘려 줘'], '스토리맵에서 고칠 점을 적으세요')}
-  <div class="row"><span class="grow"></span><button class="btn pri" data-act="toDraft">이 스토리맵으로 과제 초안 만들기 ${ic('right')}</button></div>`;
+  <div class="row"><span class="grow"></span><button class="btn pri" data-act="toDraft">과제 초안 만들기 ${ic('right')}</button></div>`;
 }
 function buildStory() {
   const s = S.s1;
@@ -1595,12 +1610,16 @@ Object.assign(ACT, {
   s1cond: () => runLoading('기출에서 평가 조건을 찾는 중…', ['자료 분류와 색인 확인','같은 발주처·직급·기법 기출 조회','평가 조건 정리'], '보통 30초 안에 끝납니다.', () => {
     S.s1.cond = deriveCond(); S.s1.answers = {}; S.s1.tasks = []; S.s1.org = ''; S.s1.step = 'cond'; S.s1.reached = 1; S.s1.topic = null; }),
   s1comp: el => { const t = S.s1.cond.tasks[+el.dataset.i], m = el.dataset.v; t.comps = t.comps.includes(m) ? t.comps.filter(x => x !== m) : [...t.comps, m]; render(); },
-  s1struct: () => runLoading('기출 구조를 분석하는 중…', ['용역 설정 문서 확인','DB 기준 정보 비교','기출 구조 정리'], '', () => { S.s1.step = 'struct'; S.s1.reached = Math.max(S.s1.reached, 2); }),
+  s1struct: () => { const s = S.s1, st = S.settings.find(x => x.name === `용역설정_${s.client}_${s.grade}_${s.method}.md`), now = dbInfo();
+    // 용역 설정 문서의 DB 기준 정보가 같으면 구조 분석 화면을 건너뛴다 (명세 2-4)
+    if (st && st.base.rows === now.rows && st.base.recent === now.recent && st.base.sig === now.sig) { ACT.s1structOk(); return; }
+    runLoading('기출 구조를 정리하는 중…', ['같은 조건의 기출 찾기','구조 정리'], '', () => { s.step = 'struct'; s.reached = Math.max(s.reached, 2); }); },
   s1structOk: () => { const s = S.s1, name = `용역설정_${s.client}_${s.grade}_${s.method}.md`, now = dbInfo(), st = S.settings.find(x => x.name === name);
     if (st) Object.assign(st, { saved:new Date().toISOString().slice(0,10), base:now }); else S.settings.push({ name, saved:new Date().toISOString().slice(0,10), base:now });
     s.tasks = s.cond.tasks.map((t,i) => ({ no:i+1, comps:t.comps.slice(), cands:clone(candsFor(i)), fixed:null }));
-    runLoading('해결과제 1 후보를 만드는 중…', ['서로 다른 분야 후보 5개 만들기','기출·주제풀과 중복 대조','유불리·시의성 점검표로 거르기'], '보통 1~2분 걸립니다.', () => { s.step = 'task'; s.taskIdx = 0; s.reached = Math.max(s.reached, 3); });
-    toast('용역 설정 문서에 저장했습니다.'); },
+    s.pick = null;
+    runLoading('해결과제 1 후보를 만드는 중…', ['서로 다른 분야 후보 5개 만들기','기출과 겹치는지 확인','점검표로 거르기'], '보통 1~2분 걸립니다.', () => { s.step = 'task'; s.taskIdx = 0; s.reached = Math.max(s.reached, 3); }); },
+  s1fixPick: () => { if (S.s1.pick != null) fixCand(S.s1.pick); },
   s1edit: el => { S.s1.editCand = +el.dataset.v; render(); },
   s1editNo: () => { S.s1.editCand = null; render(); },
   s1fix: el => fixCand(+el.dataset.v),
@@ -1622,7 +1641,7 @@ Object.assign(ACT, {
 });
 function fixCand(i) {
   const s = S.s1, t = s.tasks[s.taskIdx], c = t.cands[i];
-  t.fixed = { ...c, org:s.taskIdx === 0 ? c.org : s.org }; if (s.taskIdx === 0) s.org = c.org; s.editCand = null; S.ai.cands = null;
+  t.fixed = { ...c, org:s.taskIdx === 0 ? c.org : s.org }; if (s.taskIdx === 0) s.org = c.org; s.editCand = null; s.pick = null; S.ai.cands = null;
   if (s.taskIdx < s.tasks.length - 1) {
     runLoading(`해결과제 ${s.taskIdx + 2} 후보를 만드는 중…`, ['고정한 가상조직의 다른 업무 찾기','기출·주제풀·실무 DB와 중복 대조','점검표로 거르기'], '보통 1~2분 걸립니다.', () => { s.taskIdx++; s.reached = Math.max(s.reached, 3 + s.taskIdx); });
   } else { s.step = 'confirm'; s.reached = Math.max(s.reached, 3 + s.tasks.length); render(); }
@@ -1691,6 +1710,7 @@ document.addEventListener('change', e => {
     if (k === 'n') { const n = +t.value; while (c.tasks.length < n) c.tasks.push({ comps:[] }); c.tasks.length = n; } else c[k] = t.value;
     render(); return; }
   if (t.dataset.s1q) { S.s1.answers[t.dataset.s1q] = t.value; render(); return; }
+  if (t.dataset.pick) { S.s1.pick = +t.dataset.pick; render(); return; }
   if (t.dataset.slot === 'csv') { toast(`${t.files[0] ? t.files[0].name : ''}을(를) 읽었습니다. (시안) 실제로는 열 이름을 맞춰 보고 미리보기 뒤에 추가합니다.`); return; }
   if (t.dataset.slot) {
     const name = t.files[0] ? t.files[0].name : ''; if (!name) return;
