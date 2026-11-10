@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>과제 개발 포털</title>
 <!--
-  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.2)
+  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.3)
   - AI 응답, 음성 인식, 파일 처리는 이 파일 안의 예시 데이터로 흉내 낸다.
   - 예시 과제(한빛시 공영자전거)는 시안용으로 지어낸 내용이다. 실제 과제·양식의 내용은 넣지 않았다.
   - 실제 연결 시 바꿀 곳은 "API 연결 지점" 주석으로 표시했다.
@@ -234,7 +234,6 @@ const BLOCKS0 = [
   { id:'g4', doc:'평가자가이드', g:'평가자가이드', title:'평가자 질문', page:'', text:'· 고장 비율과 이용 감소의 관계를 어떻게 판단했습니까?\n· 자료 6에 나온 시민 설문 결과를 어떻게 반영했습니까?\n· 예산이 모자랄 때 어떤 사업을 먼저 줄이겠습니까?' },
   { id:'g5', doc:'평가자가이드', g:'평가자가이드', title:'채점 기준', page:'', text:'5점: 원인 분석, 예산 제약, 다른 과 입장을 모두 반영한 조합을 제시\n3점: 원인은 맞게 찾았으나 예산 제약을 일부 놓침\n1점: 근거 없이 자기 과 사업만 주장' },
 ];
-const GROUP_ORDER = ['구조','공통 자료','평가대상자 A · 교통정책과','평가대상자 B · 재정관리과','평가자가이드'];
 
 // 점검 버튼을 눌렀을 때 나올 예시 결과 (API 연결 지점: 점검 항목의 지침 프롬프트 + 문서 전체를 모델에 보내고, 계산 코드 결과와 합친다)
 const FINDINGS = [
@@ -246,7 +245,7 @@ const FINDINGS = [
   { check:'match', block:'d2', find:'대여소 320곳', fix:'대여소 302곳', why:'자료 3 표에는 2030년 대여소가 302곳으로 적혀 있습니다.' },
   { check:'basis', block:'d4', find:'최근 이용자 만족도가 크게 떨어진 만큼', fix:'고장 자전거 비율이 15%까지 높아진 만큼', why:'과제 어디에도 이용자 만족도 자료가 없습니다. 자료 1·3에 있는 고장 비율로 근거를 바꿨습니다.' },
   { check:'expr',  block:'d4', find:'전기자전거 도입이 가장 바람직한 안이다.', fix:'전기자전거 도입을 우선 검토해 주시기 바랍니다.', why:'"가장 바람직한 안"은 응시자에게 정답을 알려 주는 표현입니다.' },
-  { check:'struct',block:'c0', find:'총 9장', fix:'총 11장', why:'표지를 뺀 실제 장수는 11장입니다(안내 1, 상황개요 1, 가상조직 1, 자료 1~5 6장, 역할 간지 2).' },
+  { check:'struct',block:'c0', find:'총 9장', fix:'총 12장', why:'표지를 뺀 실제 장수는 12장입니다(안내 1, 상황개요 1, 가상조직 1, 자료 1~5 6장, 역할 간지 2, 마침 1).' },
   { check:'guide', block:'g4', find:'자료 6에 나온 시민 설문 결과를 어떻게 반영했습니까?', fix:'자료 1에 나온 시민 반응을 어떻게 반영했습니까?', why:'평가과제에는 자료 6이 없습니다. 시민 의견은 자료 1에만 있습니다.' },
 ];
 
@@ -261,14 +260,16 @@ const TRANSCRIPT0 = [
   { t:'00:12:48', s:0, text:'자료 4 끝 문장에 "가장 바람직한 안"이라고 돼 있으면 답을 알려 주는 거예요.' },
   { t:'00:13:30', s:1, text:'저는 오히려 교통정책과 입장이 좀 더 세게 드러나야 토론이 살 것 같아요.' },
   { t:'00:14:02', s:2, text:'주장은 유지하되 정답처럼 읽히는 표현만 바꾸겠습니다.' },
+  { t:'00:15:20', s:3, text:'자료 4를 고칠 때 교통정책과 입장이 약해지지 않게 해 주세요. 토론에서 대립이 분명해야 합니다.' },
+  { t:'00:20:05', s:3, text:'자료 3 예산 규모는 실제 우리 시 규모와 비슷하게 유지해 주세요.' },
   { t:'00:41:10', s:3, text:'2차 검토회의는 3월 18일 오전 10시로 하겠습니다.' },
 ];
 // 보고서 표의 의견 행 (API 연결 지점: 녹취록 + 양식 칸 구성 + 지침 프롬프트로 생성)
 const REPORT_ROWS = [
   { loc:'과제 전반', op:'자료 구성과 수치 위주로 검토함.', plan:'아래 의견을 2차 검토 전까지 반영하겠음.', src:0 },
-  { loc:'[자료3. 운영 현황(2/2), 7page]', op:'총예산(48억 원)과 항목별 합계(46억 원)가 맞지 않아 응시자가 계산할 때 혼선이 생길 수 있음.', plan:'총액을 항목 합계에 맞춰 46억 원으로 수정하겠음.', src:1, req:{check:'calc'} },
+  { loc:'[자료3. 운영 현황(2/2), 7page]', op:'총예산(48억 원)과 항목별 합계(46억 원)가 맞지 않아 응시자가 계산할 때 혼선이 생길 수 있음.', cl:'예산 규모는 실제 시 규모와 비슷하게 유지해 줄 것을 요청함.', clSrc:9, plan:'총액을 항목 합계에 맞춰 46억 원으로 수정하되, 예산 규모는 유지하겠음.', src:1, req:{check:'calc'} },
   { loc:'[자료2. 교통국장 이메일, 5page]', op:'대여소 수가 자료2(320곳)와 자료3(302곳)에서 서로 다름.', plan:'자료3 표 기준(302곳)으로 맞추겠음.', src:3, req:{check:'match'} },
-  { loc:'[자료4. 교통정책과 제안 세부사업(안), 9page]', op:'끝 문장의 "가장 바람직한 안" 표현이 정답을 알려 줄 수 있음. 반면 교통정책과 입장은 더 분명히 드러나야 한다는 의견도 있음.', plan:'주장은 유지하되 정답처럼 읽히는 표현만 바꾸겠음.', src:5, conflict:true, req:{check:'expr'},
+  { loc:'[자료4. 교통정책과 제안 세부사업(안), 9page]', op:'끝 문장의 "가장 바람직한 안" 표현이 정답을 알려 줄 수 있음. 반면 교통정책과 입장은 더 분명히 드러나야 한다는 의견도 있음.', cl:'교통정책과 입장이 약해지지 않도록 대립 구도를 유지해 줄 것을 요청함.', clSrc:8, plan:'주장은 유지하되 정답처럼 읽히는 표현만 바꾸겠음.', src:5, conflict:true, req:{check:'expr'},
     ref:'참고: 2029년 ○○시 집단토론 과제 자료 6 — 과별 제안서를 "우선 검토 요청" 문장으로 끝내 입장은 드러내되 결론은 열어 둠' },
 ];
 const FORM_FIELDS = [
@@ -277,7 +278,7 @@ const FORM_FIELDS = [
   { k:'참석인원(총 n명, 구분별 소속·이름)', how:'화자 정보', v:'ai' },
   { k:'회의내용 표: 위치 행', how:'평가과제 pptx의 자료 제목·장·쪽', v:'ai' },
   { k:'회의내용 표: 검토위원 의견', how:'검토위원 발언 요약', v:'ai' },
-  { k:'회의내용 표: 발주처 의견', how:'회의 뒤 발주처가 채움', v:'empty' },
+  { k:'회의내용 표: 발주처 의견', how:'발주처 화자의 관련 발언 요약 (관련 발언이 없는 행은 비움)', v:'ai' },
   { k:'회의내용 표: 개선 및 반영 방향', how:'개발사 답변 요약, "~하겠음" 문체', v:'ai' },
   { k:'향후일정 표', how:'회의에서 나온 다음 일정', v:'ai' },
 ];
@@ -337,7 +338,7 @@ function toast(m){ const t=$('toast'); t.textContent=m; t.classList.remove('hidd
    3. 화면 그리기
    ===================================================================== */
 const STAGES = ['주제 탐색','과제 초안','검토회의 보고서','검토의견 반영','검수'];
-const ADMIN = [['prompts','지침 관리'],['checks','점검 항목 관리'],['lib','참고자료 저장소'],['forms','양식 관리'],['settings','설정']];
+const ADMIN = [['prompts','지침 관리'],['checks','점검 항목 관리'],['lib','참고자료 저장소'],['forms','양식·구조 관리'],['settings','설정']];
 function render() {
   document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === S.mode));
   $('proj').textContent = S.s1.topic ? `프로젝트: ${S.s1.topic.title} · ${S.s1.method}` : '프로젝트: 새 과제';
@@ -402,7 +403,8 @@ function v2() {
       <span class="btn sm">${S.slots[k]?'바꾸기':'파일 올리기'}</span><input type="file" data-slot="${k}"></label>`;
   return `<div class="narrow"><h1>과제 초안</h1><p class="lead">세 파일을 넣으면 평가과제와 평가자가이드 초안을 함께 만듭니다. 지침: <span class="tag blue">${esc(S.prompts[1].mode==='skill'?S.prompts[1].skill:'지침 프롬프트')}</span></p>
     ${slot('story','스토리맵','① 주제 탐색에서 만들면 자동으로 들어옵니다')}
-    ${slot('task','참조할 평가과제','pptx 또는 pdf')}
+    ${slot('task','참조할 평가과제','pptx 또는 pdf · 초안의 가로·세로, 쪽 크기, 레이아웃은 이 파일을 따릅니다')}
+    ${S.slots.task?`<p class="muted" style="margin:-4px 0 8px 4px">AI가 읽은 구조: 세로 · A4 · 자료 5개 · 역할 묶음 2개 (용역별로 저장된 구조를 먼저 적용함)</p>`:''}
     ${slot('guide','참조할 평가자가이드','pptx, pdf 또는 docx')}
     <button class="btn pri big" style="margin-top:8px" data-act="makeDraft" ${S.slots.story&&S.slots.task&&S.slots.guide?'':'disabled'}>초안 만들기</button>
     <p class="muted" style="margin-top:8px">시안에서는 아무 파일이나 올려도 같은 예시 초안이 나옵니다. <a href="#" data-act="fillSlots">예시 파일로 채우기</a></p></div>`;
@@ -416,7 +418,7 @@ function editorHTML(stage) {
   const groups = {};
   S.blocks.forEach(x => (groups[x.g] = groups[x.g] || []).push(x));
   let tree = '', lastDoc = '';
-  GROUP_ORDER.forEach(g => {
+  Object.keys(groups).forEach(g => {   // 묶음 순서는 파일에서 처음 나온 순서를 따른다(용역마다 다름)
     if (!groups[g]) return;
     const d = groups[g][0].doc;
     if (d !== lastDoc) { tree += `<div class="top">${d}</div>`; lastDoc = d; }
@@ -537,12 +539,13 @@ function v3() {
   <div class="card">
     <div class="field"><label>양식</label><select data-bind="form">
       <option value="saved" ${S.form==='saved'?'selected':''}>○○시 5급 역량평가 · 과제 검토회의 결과 (저장된 양식, 칸 8개)</option>
-      <option value="new" ${S.form==='new'?'selected':''}>새 양식 올리기 (hwp, hwpx)</option></select></div>
-    ${S.form==='new'?`<label class="slot"><span class="grow"><b>양식 파일</b><br><span class="muted">hwp를 올리면 한 번만 hwpx로 바꿔 저장합니다. 이전 회차 내용이 들어 있으면 문체 예시로 씁니다.</span></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="form"></label>`:''}
+      <option value="new" ${S.form==='new'?'selected':''}>새 양식 올리기 (hwpx)</option></select></div>
+    ${S.form==='new'?`<label class="slot"><span class="grow"><b>양식 파일 (hwpx)</b><br><span class="muted">hwp 양식은 한글에서 "다른 이름으로 저장 → hwpx"로 한 번 바꿔 올려 주세요. 이전 회차 내용이 들어 있으면 문체 예시로 씁니다.</span></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="form" accept=".hwpx,.hwp"></label>`:''}
     <div class="lbl" style="margin-top:8px">AI가 찾은 칸 <span class="muted">— 칸마다 채우는 방법만 확인하세요</span></div>
     <table class="t">${S.fields.map((f,i)=>`<tr><td>${esc(f.k)}<br><span class="muted">${esc(f.how)}</span></td>
       <td style="white-space:nowrap">${[['ai','AI가 채움'],['empty','비워 둠'],['manual','직접 입력']].map(([v,n])=>`<label class="switch" style="margin-right:8px"><input type="radio" name="f${i}" data-field="${i}" value="${v}" ${f.v===v?'checked':''}>${n}</label>`).join('')}</td></tr>`).join('')}</table>
     <label class="switch" style="margin-top:10px"><input type="checkbox" data-bind="linkPptx" ${S.linkPptx?'checked':''}> 평가과제 pptx(② 초안)로 위치 표기 맞추기 <span class="muted">"자료 3 두 번째 장" → [자료3. 운영 현황(2/2), 7page]</span></label>
+    ${S.roleWarn?`<div class="impact" style="margin-top:12px">⚠️ <span class="grow">${esc(S.roleWarn.join(', '))}의 구분(검토위원/발주처/개발사)을 먼저 정해 주세요. 구분이 있어야 의견 열을 나눠 채울 수 있습니다.</span><a href="#" data-act="demoRoles">예시 화자 정보 넣기</a></div>`:''}
     <div style="margin-top:12px"><button class="btn pri" data-act="makeReport">칸 채우기</button></div>
   </div>
   ${S.report?reportHTML():''}`;
@@ -560,7 +563,7 @@ function reportHTML() {
     <p style="margin-top:10px"><b>□ 회의내용</b>: 평가과제 구조 및 내용 검토</p>
     <table class="t"><tr><th>검토위원 의견</th><th>발주처 의견</th><th>개선 및 반영 방향</th></tr>
     ${REPORT_ROWS.map(r=>`<tr><td colspan="3" class="loc">${cell(3,esc(r.loc))} <span class="src" data-act="jump" data-v="${r.src}">근거 ▶ ${S.lines[r.src].t}</span></td></tr>
-      <tr><td>${cell(4,esc(r.op))}</td><td class="empty">${cell(5,'')}</td><td>${cell(6,esc(r.plan))}</td></tr>`).join('')}</table>
+      <tr><td>${cell(4,esc(r.op))}</td><td>${r.cl?cell(5,esc(r.cl)+` <span class="src" data-act="jump" data-v="${r.clSrc}">근거 ▶ ${S.lines[r.clSrc].t}</span>`):'<span class="muted">(관련 발주처 발언 없음)</span>'}</td><td>${cell(6,esc(r.plan))}</td></tr>`).join('')}</table>
     <p style="margin-top:10px"><b>□ 향후일정</b></p>
     <table class="t"><tr><th>연번</th><th>구분</th><th>기법</th><th>내용</th><th>일시</th></tr>
       <tr><td>1</td><td>5급 역량평가</td><td>집단토론</td><td>2차 과제개발 검토</td><td>${cell(7,'2031.03.18.(화) 오전 10시')}</td></tr></table>
@@ -576,20 +579,35 @@ function reqSummary() {
 }
 function v4() {
   if (S.s4 === 'edit') return editorHTML(4);
+  if (S.draft === 'struct') return vStruct();
   if (S.draft !== 'ready') return `<div class="narrow"><h1>검토의견 반영</h1><p class="lead">고칠 평가과제가 없습니다. ② 과제 초안을 만들거나 평가과제 pptx를 올리세요.</p>
     <label class="slot"><span class="grow"><b>평가과제 pptx</b></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="pptx4"></label></div>`;
   return `<div class="narrow"><h1>검토의견 반영</h1>
     <p class="lead">${S.report?'③ 보고서 표의 의견 행을 그대로 가져왔습니다.':'③ 보고서가 아직 없어 녹취록에서 뽑은 요청입니다.'} 반영할 항목만 체크하세요.</p>
     ${S.reqs.map((r,i)=>`<div class="card"><label class="row" style="align-items:flex-start"><input type="checkbox" data-req="${i}" ${r.on?'checked':''} style="margin-top:4px">
-      <span class="grow"><b>${esc(r.loc)}</b> ${r.conflict?'<span class="tag warn">위원 의견 엇갈림</span>':''}<br>
-      <span>${esc(r.op)}</span><br><span class="muted">반영 방향: ${esc(r.plan)}</span><br>
+      <span class="grow"><b>${esc(r.loc)}</b> ${r.conflict?'<span class="tag warn">의견 엇갈림</span>':''}<br>
+      <span>검토위원: ${esc(r.op)}</span><br>${r.cl?`<span>발주처: ${esc(r.cl)}</span><br>`:''}<span class="muted">반영 방향: ${esc(r.plan)}</span><br>
       <span class="muted" style="font-size:12px">근거 발언 ${TRANSCRIPT0[r.src].t}${r.ref?` · 📎 ${esc(r.ref)}`:''}</span></span></label></div>`).join('')}
     <button class="btn pri big" data-act="makeFixes">고친 안 만들기 (${S.reqs.filter(r=>r.on).length}건)</button>
     <p class="muted" style="margin-top:8px">고친 안을 만들 때 참고자료 저장소에서 같은 기법의 다른 과제와 평가자가이드를 찾아 근거로 붙입니다.</p></div>`;
 }
 
+/* ---------- 구조 확인 (pptx를 처음 열 때) ---------- */
+// API 연결 지점: pptx를 읽어 자료 표기·간지·쪽 번호로 블록을 제안 (명세 5-4)
+function vStruct() {
+  const tb = S.blocks.filter(b => b.doc === '평가과제'), groups = [...new Set(tb.map(b => b.g))];
+  return `<div class="narrow" style="max-width:900px"><h1>구조 확인</h1>
+    <p class="lead">${esc(S.structFile||'평가과제.pptx')} · 세로 · A4 · 13장 · 자료 표기 "자료 N." · 역할 간지 2장<br>AI가 나눈 블록입니다. 틀린 곳만 고치세요. 확인한 구조는 이 용역의 다음 파일에 먼저 적용됩니다.</p>
+    <table class="t"><tr><th>블록</th><th>쪽</th><th>묶음</th><th></th></tr>
+    ${tb.map((b,i)=>`<tr><td>${esc(b.title)}</td><td>${b.page||'-'}</td>
+      <td><select data-grp="${b.id}">${groups.map(g=>`<option ${g===b.g?'selected':''}>${esc(g)}</option>`).join('')}</select></td>
+      <td>${i?`<button class="btn sm" data-act="merge" data-v="${b.id}">앞 블록과 합치기</button>`:''}</td></tr>`).join('')}</table>
+    <div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn pri" data-act="structOk">이대로 열기</button></div></div>`;
+}
+
 /* ---------- ⑤ 검수 ---------- */
 function v5() {
+  if (S.draft === 'struct') return vStruct();
   if (S.draft !== 'ready') return `<div class="narrow"><h1>검수</h1><p class="lead">검수할 평가과제를 올리세요. ④ 결과가 있으면 자동으로 선택됩니다.</p>
     <label class="slot"><span class="grow"><b>평가과제 pptx + 평가자가이드</b></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="pptx5"></label></div>`;
   return editorHTML(5);
@@ -639,10 +657,15 @@ function aLib() {
   <table class="t"><tr><th>종류</th><th>발주처</th><th>연도</th><th>기법</th><th>직급</th></tr>${LIB.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table>`;
 }
 function aForms() {
-  return `<h1>양식 관리</h1><p class="lead">이용자가 확인한 양식과 칸 구성이 용역별로 저장됩니다. 같은 용역의 다음 회차 회의에서 다시 씁니다.</p>
+  return `<h1>양식·구조 관리</h1><p class="lead">이용자가 확인한 보고서 양식과 과제 파일 구조가 용역별로 저장됩니다. 같은 용역의 다음 회의·다음 파일에서 다시 씁니다.</p>
+  <h2>보고서 양식</h2>
   <table class="t"><tr><th>양식 이름</th><th>파일</th><th>칸</th><th>최근 사용</th><th></th></tr>
   <tr><td>○○시 5급 역량평가 · 과제 검토회의 결과</td><td>hwpx (hwp에서 바꿈)</td><td>8</td><td>2031-03-04</td><td><button class="btn sm" data-act="soon">칸 구성 보기</button></td></tr>
-  <tr><td>△△도 4급 역량평가 · 검토위원회 회의록</td><td>hwpx</td><td>6</td><td>2030-11-20</td><td><button class="btn sm" data-act="soon">칸 구성 보기</button></td></tr></table>`;
+  <tr><td>△△도 4급 역량평가 · 검토위원회 회의록</td><td>hwpx</td><td>6</td><td>2030-11-20</td><td><button class="btn sm" data-act="soon">칸 구성 보기</button></td></tr></table>
+  <h2>과제 파일 구조</h2>
+  <table class="t"><tr><th>용역</th><th>방향·크기</th><th>자료 표기</th><th>묶음 규칙</th></tr>
+  <tr><td>○○시 5급 역량평가</td><td>세로 · A4</td><td>자료 N.</td><td>구조 / 공통 자료 / 역할 간지별 묶음</td></tr>
+  <tr><td>△△도 4급 역량평가</td><td>가로 · 16:9</td><td>[자료 N]</td><td>구조 / 자료 (간지 없음)</td></tr></table>`;
 }
 function aSettings() {
   return `<h1>설정</h1>
@@ -724,7 +747,12 @@ const ACT = {
   play: el => { S.playing = +el.dataset.v; render(); },
   stop: () => { S.playing = null; render(); },
   jump: el => { S.playing = +el.dataset.v; render(); $('ln-'+el.dataset.v).scrollIntoView({ block:'center' }); },
-  makeReport: () => { S.report = true; render(); },
+  makeReport: () => {
+    const none = S.speakers.filter(p => !p.role).map(p => p.name);
+    if (none.length) { S.report = false; S.roleWarn = none; render(); return; }
+    S.roleWarn = null; S.report = true; render(); },
+  demoRoles: () => { [['김○○','○○대학교 교수','검토위원'],['이○○','△△대학교 교수','검토위원'],['박○○','개발사 연구원','개발사'],['최○○','○○시 인재개발과 주무관','발주처']]
+    .forEach(([n,o,r],i) => Object.assign(S.speakers[i], { name:n, org:o, role:r })); S.roleWarn = null; render(); },
   repAsk: () => { const q = $('repAsk').value.trim(); if (q) toast(`요청을 받았습니다: ${q}`); },
   hwpx: () => toast('시안에서는 파일을 만들지 않습니다. 실제로는 저장된 양식(hwpx)의 칸에 채워 내보냅니다.'),
   toS4: () => { S.stage = 4; render(); },
@@ -732,10 +760,14 @@ const ACT = {
   makeFixes: () => {
     S.reqs.filter(r => r.on).forEach(r => {
       const f = FINDINGS.find(x => x.check === r.req.check && B(x.block).text.includes(x.find)); if (!f) return;
-      S.issues.push({ ...f, id:issueSeq++, check:'review', why:`${r.loc} ${r.op}\n반영 방향: ${r.plan}`, ref:r.ref || '참고: 같은 기법의 기출 과제 2건을 찾아 비교함', status:'open' });
+      S.issues.push({ ...f, id:issueSeq++, check:'review', why:`${r.loc} ${r.op}${r.cl?`\n발주처: ${r.cl}`:''}\n반영 방향: ${r.plan}`, ref:r.ref || '참고: 같은 기법의 기출 과제 2건을 찾아 비교함', status:'open' });
     });
     S.s4 = 'edit'; S.panel = 'issues'; S.cur = 'd3'; render();
   },
+  structOk: () => { S.draft = 'ready'; render(); toast('구조를 저장했습니다. 같은 용역의 다음 파일에 먼저 적용됩니다.'); },
+  merge: el => { const i = S.blocks.findIndex(b => b.id === el.dataset.v), prev = S.blocks.slice(0, i).reverse().find(b => b.doc === '평가과제');
+    prev.text += '\n' + S.blocks[i].text; S.base[prev.id] = prev.text; prev.page = [prev.page, S.blocks[i].page].filter(Boolean).join(', ');
+    if (S.cur === S.blocks[i].id) S.cur = prev.id; S.blocks.splice(i, 1); render(); },
   s4list: () => { S.s4 = 'list'; render(); },
   reqTable: () => toast('시안에서는 파일을 만들지 않습니다. 실제로는 "요청 → 반영 여부 → 고친 위치" 표를 엑셀로 내보냅니다.'),
   // 관리자
@@ -773,12 +805,14 @@ document.addEventListener('change', e => {
   if (t.dataset.slot) {
     const name = t.files[0] ? t.files[0].name : ''; if (!name) return;
     if (t.dataset.slot === 'audio') return startStt(name);
-    if (['pptx4','pptx5'].includes(t.dataset.slot)) { S.draft = 'ready'; render(); return; }
+    if (t.dataset.slot === 'form') { toast(/\.hwp$/i.test(name) ? 'hwp 양식은 한글에서 "다른 이름으로 저장 → hwpx"로 바꾼 뒤 다시 올려 주세요.' : `${name}을(를) 읽고 칸 8개를 찾았습니다. (시안)`); return; }
+    if (['pptx4','pptx5'].includes(t.dataset.slot)) { S.draft = 'struct'; S.structFile = name; render(); return; }
     if (t.dataset.slot in S.slots) { S.slots[t.dataset.slot] = name; render(); return; }
     toast(`${name}을(를) 올렸습니다. (시안)`); return;
   }
   if (t.dataset.field) { S.fields[+t.dataset.field].v = t.value; return; }
   if (t.dataset.line) { S.lines[+t.dataset.line].s = +t.value; render(); return; }
+  if (t.dataset.grp) { B(t.dataset.grp).g = t.value; return; }
   if (t.dataset.req) { S.reqs[+t.dataset.req].on = t.checked; render(); return; }
   if (t.dataset.c) { const c = S.checks.find(x => x.id === t.dataset.c), k = t.dataset.k;
     if (k === 'where') c.where = t.checked ? [...c.where, +t.value].sort() : c.where.filter(w => w !== +t.value);
