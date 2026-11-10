@@ -3,357 +3,813 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>역량평가 과제 만들기</title>
+<title>과제 개발 포털</title>
 <!--
-  사내 AI 포털 · 역량평가 과제 개발 화면 (프로토타입)
-  화면 원칙
-  1. 화면은 3단계(입력 → 주제 고르기 → 결과)만 둔다. 한 화면에 한 가지 결정만 요구한다.
-  2. 필수 입력은 3개(평가 기법, 대상, 평가 역량)뿐이다. 주제와 참고자료는 선택이다.
-  3. 모델 선택, 프롬프트, 온도·토큰 같은 설정은 화면에 두지 않는다. 포털이 정한다.
-  4. 결과 수정은 입력창 하나로 한다. "2번 자료를 더 짧게"처럼 말로 요청한다.
-  5. 산출물(스토리맵, 과제지, 평정가이드)은 탭 3개로만 나눈다.
-  AI 응답은 이 파일 안의 예시 데이터로 흉내 낸다. 실제 연결 시 generate*() 함수만 API 호출로 바꾸면 된다.
+  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.2)
+  - AI 응답, 음성 인식, 파일 처리는 이 파일 안의 예시 데이터로 흉내 낸다.
+  - 예시 과제(한빛시 공영자전거)는 시안용으로 지어낸 내용이다. 실제 과제·양식의 내용은 넣지 않았다.
+  - 실제 연결 시 바꿀 곳은 "API 연결 지점" 주석으로 표시했다.
 -->
 <style>
   :root {
-    --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --sub: #6b7280; --line: #e5e7eb;
-    --accent: #2f5bea; --accent-soft: #eef2fe; --accent-text: #ffffff; --ok: #12805c;
+    --bg:#f6f7f9; --card:#fff; --text:#16181d; --sub:#667085; --line:#e4e7ec; --soft:#f2f4f7;
+    --accent:#2f5bea; --accent-soft:#eef2fe; --on-accent:#fff;
+    --add:#dcfae6; --add-t:#067647; --del:#fee4e2; --del-t:#b42318; --warn:#fff4e5; --warn-t:#b54708;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #111317; --card: #1a1d23; --text: #eceef2; --sub: #9aa1ad; --line: #2b2f37;
-      --accent: #7c9bff; --accent-soft: #1f2740; --accent-text: #0d1020; --ok: #4cc59a;
-    }
-  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#111317; --card:#1a1d23; --text:#eceef2; --sub:#9aa1ad; --line:#2b2f37; --soft:#22262d;
+    --accent:#7c9bff; --accent-soft:#1f2740; --on-accent:#0d1020;
+    --add:#0f3a2a; --add-t:#7ce0b0; --del:#4a1d1a; --del-t:#ff9c94; --warn:#3a2a12; --warn-t:#ffc274; } }
   :root[data-theme="dark"] {
-    --bg: #111317; --card: #1a1d23; --text: #eceef2; --sub: #9aa1ad; --line: #2b2f37;
-    --accent: #7c9bff; --accent-soft: #1f2740; --accent-text: #0d1020; --ok: #4cc59a;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-         background: var(--bg); color: var(--text); line-height: 1.6; }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 120px; }
+    --bg:#111317; --card:#1a1d23; --text:#eceef2; --sub:#9aa1ad; --line:#2b2f37; --soft:#22262d;
+    --accent:#7c9bff; --accent-soft:#1f2740; --on-accent:#0d1020;
+    --add:#0f3a2a; --add-t:#7ce0b0; --del:#4a1d1a; --del-t:#ff9c94; --warn:#3a2a12; --warn-t:#ffc274; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+         background:var(--bg); color:var(--text); line-height:1.6; font-size:14px; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  button { cursor:pointer; }
 
-  /* 단계 표시 */
-  .steps { display: flex; gap: 8px; margin-bottom: 28px; font-size: 13px; color: var(--sub); }
-  .steps span { display: flex; align-items: center; gap: 6px; }
-  .steps b { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-             border: 1px solid var(--line); font-weight: 600; font-size: 12px; }
-  .steps .on { color: var(--text); font-weight: 600; }
-  .steps .on b { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
-  .steps .done b { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-soft); }
-  .steps i { flex: 1; max-width: 32px; border-top: 1px solid var(--line); align-self: center; }
+  header { background:var(--card); border-bottom:1px solid var(--line); }
+  .hd { max-width:1280px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .hd .logo { font-weight:700; }
+  .hd .proj { color:var(--sub); font-size:13px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:none; background:none; padding:6px 12px; font-size:13px; color:var(--sub); }
+  .seg button.on { background:var(--accent); color:var(--on-accent); font-weight:600; }
+  nav.stages { max-width:1280px; margin:0 auto; padding:0 16px; display:flex; gap:2px; overflow-x:auto; }
+  nav.stages button { border:none; background:none; padding:10px 12px; color:var(--sub); border-bottom:2px solid transparent; white-space:nowrap; }
+  nav.stages button.on { color:var(--text); font-weight:600; border-bottom-color:var(--accent); }
+  nav.stages b { display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; border-radius:50%;
+                 background:var(--soft); font-size:12px; margin-right:6px; }
+  nav.stages button.on b { background:var(--accent); color:var(--on-accent); }
+  nav.stages button.done b { background:var(--accent-soft); color:var(--accent); }
 
-  h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
-  .lead { color: var(--sub); font-size: 14px; margin-bottom: 28px; }
-
-  .field { margin-bottom: 24px; }
-  .field > label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-  .field > label small { font-weight: 400; color: var(--sub); margin-left: 4px; }
-
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { padding: 9px 14px; border: 1px solid var(--line); background: var(--card); color: var(--text);
-          border-radius: 999px; font-size: 14px; cursor: pointer; }
-  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
-
-  input[type=text], textarea { width: 100%; padding: 12px 14px; font: inherit; font-size: 14px; color: var(--text);
-          background: var(--card); border: 1px solid var(--line); border-radius: 10px; outline: none; }
-  input[type=text]:focus, textarea:focus { border-color: var(--accent); }
-  textarea { resize: vertical; min-height: 84px; }
-
-  .drop { display: block; padding: 16px; border: 1px dashed var(--line); border-radius: 10px; background: var(--card);
-          font-size: 13px; color: var(--sub); text-align: center; cursor: pointer; }
-  .drop input { display: none; }
-
-  .primary { width: 100%; padding: 14px; font-size: 15px; font-weight: 600; border: none; border-radius: 10px;
-             background: var(--accent); color: var(--accent-text); cursor: pointer; }
-  .primary:disabled { opacity: .4; cursor: not-allowed; }
-  .ghost { padding: 9px 14px; font-size: 13px; border: 1px solid var(--line); background: var(--card); color: var(--text);
-           border-radius: 8px; cursor: pointer; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .hint { font-size: 12px; color: var(--sub); margin-top: 8px; }
+  main { max-width:1280px; margin:0 auto; padding:20px 16px 40px; }
+  .narrow { max-width:760px; }
+  h1 { font-size:21px; margin-bottom:4px; }
+  h2 { font-size:16px; margin:20px 0 8px; }
+  .lead { color:var(--sub); margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:12px; }
+  .field { margin-bottom:16px; }
+  .field > label, .lbl { display:block; font-weight:600; margin-bottom:6px; }
+  .field small, .muted { color:var(--sub); font-weight:400; font-size:12px; }
+  input[type=text], textarea, select { width:100%; padding:9px 12px; background:var(--card); border:1px solid var(--line); border-radius:8px; outline:none; }
+  input[type=text]:focus, textarea:focus { border-color:var(--accent); }
+  textarea { resize:vertical; min-height:70px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .grow { flex:1; min-width:0; }
+  .chip { padding:7px 12px; border:1px solid var(--line); background:var(--card); border-radius:999px; }
+  .chip.on { background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600; }
+  .btn { padding:8px 14px; border:1px solid var(--line); background:var(--card); border-radius:8px; }
+  .btn.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .big { width:100%; padding:12px; font-size:15px; }
+  .tag { display:inline-block; font-size:12px; padding:1px 8px; border-radius:6px; background:var(--soft); color:var(--sub); }
+  .tag.blue { background:var(--accent-soft); color:var(--accent); }
+  .tag.warn { background:var(--warn); color:var(--warn-t); }
+  .slot { display:flex; align-items:center; gap:10px; padding:12px; border:1px dashed var(--line); border-radius:10px; background:var(--card); margin-bottom:8px; }
+  .slot.ok { border-style:solid; }
+  .slot input[type=file] { display:none; }
+  table.t { width:100%; border-collapse:collapse; font-size:13px; }
+  table.t th, table.t td { border:1px solid var(--line); padding:7px 9px; text-align:left; vertical-align:top; }
+  table.t th { background:var(--soft); font-weight:600; }
+  .loading { padding:40px 0; text-align:center; color:var(--sub); }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:var(--bg);
+           padding:10px 16px; border-radius:10px; font-size:13px; z-index:50; max-width:90vw; }
+  .hidden { display:none !important; }
 
   /* 주제 후보 */
-  .topic { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 12px;
-           cursor: pointer; text-align: left; width: 100%; font: inherit; color: inherit; }
-  .topic:hover { border-color: var(--accent); }
-  .topic h3 { font-size: 16px; margin-bottom: 6px; }
-  .topic p { font-size: 14px; color: var(--sub); }
-  .topic .tags { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-  .topic .tags span { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+  .cand h3 { font-size:16px; margin-bottom:4px; }
+  .cand .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0; }
+  @media (max-width:640px) { .cand .grid { grid-template-columns:1fr; } }
+  .cand ul { list-style:none; } .cand li { font-size:13px; padding:2px 0; }
 
-  /* 결과 */
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
-  .tabs button { padding: 10px 14px; font: inherit; font-size: 14px; background: none; border: none; color: var(--sub);
-                 border-bottom: 2px solid transparent; cursor: pointer; }
-  .tabs button.on { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
-  .doc { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; font-size: 14px; min-height: 240px; }
-  .doc h2 { font-size: 17px; margin: 18px 0 8px; } .doc h2:first-child { margin-top: 0; }
-  .doc ul { padding-left: 20px; } .doc li { margin: 2px 0; }
-  .doc table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
-  .doc th, .doc td { border: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
-  .doc th { background: var(--accent-soft); }
-  .doc .changed { background: var(--accent-soft); border-radius: 4px; }
-  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
-  .toolbar .title { font-size: 13px; color: var(--sub); }
-  .toast { font-size: 13px; color: var(--ok); }
+  /* 공통 편집 화면 */
+  .ed { display:grid; grid-template-columns:230px minmax(0,1fr) 340px; gap:12px; align-items:start; }
+  .ed > section { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:520px; }
+  .tree { padding:10px; font-size:13px; }
+  .tree .grp { font-size:12px; color:var(--sub); font-weight:600; margin:12px 6px 4px; }
+  .tree .grp:first-child { margin-top:2px; }
+  .tree .top { font-size:13px; color:var(--text); font-weight:700; margin:14px 6px 2px; }
+  .tree button { display:flex; gap:6px; align-items:center; width:100%; text-align:left; border:none; background:none; padding:6px 8px; border-radius:6px; }
+  .tree button.on { background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .tree .pg { color:var(--sub); font-size:11px; margin-left:auto; white-space:nowrap; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--add-t); flex:none; }
+  .cnt { font-size:11px; background:var(--warn); color:var(--warn-t); border-radius:6px; padding:0 5px; }
+  .docbar { padding:10px 12px; border-bottom:1px solid var(--line); display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .ckbtn { padding:5px 10px; border:1px solid var(--line); border-left:4px solid var(--c); background:var(--card); border-radius:6px; font-size:12px; }
+  .doc { padding:20px 24px; }
+  .doc .title { font-size:18px; font-weight:700; }
+  .doc .meta { color:var(--sub); font-size:12px; margin-bottom:14px; }
+  .doc p { margin:6px 0; white-space:pre-wrap; }
+  .doc table { border-collapse:collapse; margin:6px 0; font-size:13px; }
+  .doc td { border:1px solid var(--line); padding:5px 10px; }
+  .doc .sheet { font-size:12px; color:var(--accent); font-weight:600; margin-top:14px; }
+  .doc .figure { border:1px dashed var(--line); color:var(--sub); font-size:12px; padding:10px; border-radius:8px; margin:6px 0; }
+  mark.iss { background:none; color:inherit; border-bottom:3px solid var(--c); cursor:pointer; padding-bottom:1px; }
+  mark.iss.sel { background:var(--warn); }
+  ins { background:var(--add); color:var(--add-t); text-decoration:none; }
+  del { background:var(--del); color:var(--del-t); }
+  .impact { background:var(--warn); color:var(--warn-t); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .side { display:flex; flex-direction:column; height:640px; position:sticky; top:12px; }
+  .ptabs { display:flex; border-bottom:1px solid var(--line); }
+  .ptabs button { flex:1; border:none; background:none; padding:10px 4px; color:var(--sub); border-bottom:2px solid transparent; font-size:13px; }
+  .ptabs button.on { color:var(--text); font-weight:600; border-bottom-color:var(--accent); }
+  .pbody { flex:1; overflow-y:auto; padding:12px; }
+  .msg { padding:8px 10px; border-radius:10px; margin-bottom:8px; font-size:13px; white-space:pre-wrap; }
+  .msg.me { background:var(--accent-soft); margin-left:24px; }
+  .msg.ai { background:var(--soft); margin-right:24px; }
+  .issue { border:1px solid var(--line); border-left:4px solid var(--c); border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px; }
+  .issue.done { opacity:.55; }
+  .issue .h { display:flex; justify-content:space-between; gap:6px; margin-bottom:4px; }
+  .issue .loc { color:var(--sub); font-size:12px; }
+  .issue textarea { min-height:44px; font-size:13px; margin:6px 0; }
+  .issue .ref { font-size:12px; color:var(--sub); margin-top:4px; }
+  .ask { border-top:1px solid var(--line); padding:10px; }
+  .scope { font-size:12px; margin-bottom:6px; display:flex; gap:6px; align-items:center; }
+  .scope span { background:var(--accent-soft); color:var(--accent); padding:2px 8px; border-radius:6px; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ask form { display:flex; gap:6px; }
+  .hist { font-size:12px; border-bottom:1px solid var(--line); padding:8px 0; }
+  .pop { position:absolute; z-index:40; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px;
+         box-shadow:0 6px 24px rgba(0,0,0,.15); display:flex; gap:6px; flex-wrap:wrap; max-width:320px; }
+  .pop textarea { min-height:60px; }
+  .mtabs { display:none; }
+  .summary { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  @media (max-width:1000px) {
+    .ed { grid-template-columns:1fr; }
+    .ed > section { min-height:0; }
+    .ed > section.mhide { display:none; }
+    .side { height:560px; position:static; }
+    .mtabs { display:flex; margin-bottom:10px; }
+    .doc { padding:16px; }
+  }
 
-  .askbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 16px; }
-  .askbar form { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; }
-  .askbar input { flex: 1; }
-  .askbar button { padding: 0 18px; border: none; border-radius: 10px; background: var(--accent); color: var(--accent-text);
-                   font: inherit; font-weight: 600; cursor: pointer; }
-  .loading { padding: 40px 0; text-align: center; color: var(--sub); font-size: 14px; }
-  .hidden { display: none !important; }
+  /* 녹취록 */
+  .spk { display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); }
+  .spk i { width:10px; height:10px; border-radius:50%; background:var(--sc); display:inline-block; }
+  .line { display:grid; grid-template-columns:120px 64px 1fr; gap:10px; padding:8px; border-radius:8px; }
+  .line:hover { background:var(--soft); }
+  .line.on { background:var(--accent-soft); }
+  .line .who { font-weight:600; color:var(--sc); font-size:13px; }
+  .line .who select { font-size:12px; padding:2px 4px; margin-top:2px; }
+  .line .time { color:var(--sub); font-size:12px; white-space:nowrap; }
+  .line .txt { outline:none; border-radius:4px; }
+  .line .txt:focus { background:var(--card); box-shadow:0 0 0 1px var(--accent); }
+  @media (max-width:640px) { .line { grid-template-columns:1fr; gap:2px; } }
+  .player { position:sticky; top:0; z-index:5; background:var(--accent); color:var(--on-accent); padding:8px 12px; border-radius:8px; margin-bottom:8px; font-size:13px; }
+  .report { background:var(--card); border:1px solid var(--line); padding:24px; border-radius:4px; font-size:13px; }
+  .report .rt { text-align:center; font-weight:700; font-size:16px; margin-bottom:14px; }
+  .report .src { font-size:11px; color:var(--accent); cursor:pointer; white-space:nowrap; }
+  .report td.loc { background:var(--soft); font-weight:600; }
+  .report td.empty { color:var(--sub); font-style:italic; }
+
+  /* 관리자 */
+  .adm { display:grid; grid-template-columns:200px minmax(0,1fr); gap:16px; }
+  .adm .menu button { display:block; width:100%; text-align:left; border:none; background:none; padding:9px 12px; border-radius:8px; }
+  .adm .menu button.on { background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  @media (max-width:800px) { .adm { grid-template-columns:1fr; } .adm .menu { display:flex; overflow-x:auto; gap:4px; }
+    .adm .menu button { white-space:nowrap; width:auto; } }
+  .swatch { width:14px; height:14px; border-radius:4px; background:var(--c); display:inline-block; vertical-align:middle; }
+  .switch { display:inline-flex; align-items:center; gap:6px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-
-  <div class="steps" id="steps">
-    <span data-step="1"><b>1</b>입력</span><i></i>
-    <span data-step="2"><b>2</b>주제 고르기</span><i></i>
-    <span data-step="3"><b>3</b>결과</span>
+<header>
+  <div class="hd">
+    <span class="logo">과제 개발 포털</span>
+    <span class="proj" id="proj"></span>
+    <div class="seg" id="modeSeg">
+      <button data-act="mode" data-v="user">이용자</button>
+      <button data-act="mode" data-v="admin">관리자</button>
+    </div>
   </div>
-
-  <!-- 1단계: 입력 -->
-  <section id="s1">
-    <h1>역량평가 과제 만들기</h1>
-    <p class="lead">세 가지만 고르면 AI가 주제 후보를 먼저 보여 드립니다.</p>
-
-    <div class="field">
-      <label>평가 기법</label>
-      <div class="chips" data-group="method" data-single>
-        <button class="chip" aria-pressed="false">서류함</button>
-        <button class="chip" aria-pressed="false">역할수행</button>
-        <button class="chip" aria-pressed="false">발표</button>
-        <button class="chip" aria-pressed="false">집단토론</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label for="target">대상</label>
-      <input type="text" id="target" placeholder="예: 신임 팀장, 4급 승진 후보자">
-    </div>
-
-    <div class="field">
-      <label>평가 역량 <small>최대 3개</small></label>
-      <div class="chips" data-group="comp" data-max="3">
-        <button class="chip" aria-pressed="false">문제해결</button>
-        <button class="chip" aria-pressed="false">기획력</button>
-        <button class="chip" aria-pressed="false">의사결정</button>
-        <button class="chip" aria-pressed="false">조정·통합</button>
-        <button class="chip" aria-pressed="false">의사소통</button>
-        <button class="chip" aria-pressed="false">성과관리</button>
-        <button class="chip" aria-pressed="false">동기부여</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label for="topic">주제나 상황 <small>선택 · 비워 두면 AI가 추천</small></label>
-      <textarea id="topic" placeholder="예: 지역 축제 예산 축소를 두고 부서 간 의견이 갈리는 상황"></textarea>
-    </div>
-
-    <div class="field">
-      <label>참고 자료 <small>선택 · 기출 과제, 평정가이드, 기관 소개 자료</small></label>
-      <label class="drop" id="drop">파일을 끌어 놓거나 눌러서 올리기 (PDF, PPTX, DOCX, XLSX)
-        <input type="file" id="files" multiple accept=".pdf,.pptx,.docx,.xlsx,.csv">
-      </label>
-      <div class="hint" id="fileList"></div>
-    </div>
-
-    <button class="primary" id="go1" disabled>주제 후보 받기</button>
-    <div class="hint" id="go1hint">평가 기법, 대상, 평가 역량을 입력하면 버튼이 켜집니다.</div>
-  </section>
-
-  <!-- 2단계: 주제 고르기 -->
-  <section id="s2" class="hidden">
-    <h1>주제를 하나 고르세요</h1>
-    <p class="lead" id="s2lead"></p>
-    <div id="topics"></div>
-    <div class="row" style="margin-top:8px">
-      <button class="ghost" id="reroll">다른 후보 3개 보기</button>
-      <button class="ghost" id="back1">입력 고치기</button>
-    </div>
-  </section>
-
-  <!-- 3단계: 결과 -->
-  <section id="s3" class="hidden">
-    <div class="toolbar">
-      <div>
-        <h1 id="s3title" style="font-size:20px;margin:0"></h1>
-        <div class="title" id="s3meta"></div>
-      </div>
-      <div class="row">
-        <span class="toast" id="toast"></span>
-        <button class="ghost" id="copy">복사</button>
-        <button class="ghost" id="download">워드 파일로 받기</button>
-      </div>
-    </div>
-    <div class="tabs" id="tabs">
-      <button data-tab="story" class="on">스토리맵</button>
-      <button data-tab="task">과제지</button>
-      <button data-tab="guide">평정가이드</button>
-    </div>
-    <div class="doc" id="doc"></div>
-    <div class="row" style="margin-top:12px">
-      <button class="ghost" id="back2">다른 주제 고르기</button>
-    </div>
-  </section>
-</div>
-
-<!-- 결과 수정 입력창 (3단계에서만 보임) -->
-<div class="askbar hidden" id="askbar">
-  <form id="askform">
-    <input type="text" id="ask" placeholder="고칠 내용을 적어 주세요. 예: 자료 3을 민원 메일로 바꿔 줘">
-    <button type="submit">반영</button>
-  </form>
-</div>
+  <nav class="stages" id="stages"></nav>
+</header>
+<main id="main"></main>
+<div id="pop" class="pop hidden"></div>
+<div id="toast" class="toast hidden"></div>
 
 <script>
-const state = { method: null, comp: [], target: '', topic: '', files: [], chosen: null, tab: 'story', docs: {}, round: 0 };
-const $ = id => document.getElementById(id);
-
-/* ---------- 1단계 ---------- */
-document.querySelectorAll('.chips').forEach(group => {
-  group.addEventListener('click', e => {
-    const chip = e.target.closest('.chip'); if (!chip) return;
-    const single = group.hasAttribute('data-single');
-    const max = +group.dataset.max || 99;
-    const on = chip.getAttribute('aria-pressed') === 'true';
-    if (single) group.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
-    else if (!on && group.querySelectorAll('[aria-pressed="true"]').length >= max) return;
-    chip.setAttribute('aria-pressed', single ? 'true' : String(!on));
-    const picked = [...group.querySelectorAll('[aria-pressed="true"]')].map(c => c.textContent);
-    if (group.dataset.group === 'method') state.method = picked[0] || null; else state.comp = picked;
-    check1();
-  });
-});
-$('target').addEventListener('input', e => { state.target = e.target.value.trim(); check1(); });
-$('topic').addEventListener('input', e => { state.topic = e.target.value.trim(); check1(); });
-$('files').addEventListener('change', e => addFiles(e.target.files));
-$('drop').addEventListener('dragover', e => e.preventDefault());
-$('drop').addEventListener('drop', e => { e.preventDefault(); addFiles(e.dataTransfer.files); });
-function addFiles(list) {
-  state.files.push(...[...list].map(f => f.name));
-  $('fileList').textContent = state.files.length ? '올린 파일: ' + state.files.join(', ') : '';
-}
-function check1() {
-  const ok = state.method && state.target && state.comp.length;
-  $('go1').disabled = !ok;
-  $('go1hint').classList.toggle('hidden', !!ok);
-  $('go1').textContent = state.topic ? '이 주제로 과제 만들기' : '주제 후보 받기';
-}
-$('go1').addEventListener('click', () => {
-  if (state.topic) { pickTopic({ title: state.topic.slice(0, 40), summary: state.topic, issues: state.comp }); return; }
-  showTopics();
-});
-
-/* ---------- 2단계 ---------- */
-const POOL = [
-  { title: '공공 체육시설 야간 개방 확대', summary: '주민 요구로 야간 개방을 늘리려 하나, 관리 인력·안전 예산·인근 소음 민원이 함께 걸려 있다.', issues: ['예산 배분', '부서 간 이견', '민원 대응'] },
-  { title: '노후 전산 시스템 전환 일정 조정', summary: '전환 마감이 다가오는데 현업 부서는 업무 공백을 이유로 연기를 요청하고, 보안 점검 결과는 즉시 전환을 권한다.', issues: ['일정 충돌', '위험 판단', '이해관계자 설득'] },
-  { title: '신규 채용 인원 부서별 배정', summary: '올해 채용 인원이 계획보다 30% 줄어 부서마다 요구 인원을 다 들어줄 수 없다.', issues: ['우선순위', '근거 기반 판단', '구성원 동기'] },
-  { title: '협력업체 납품 지연 대응', summary: '핵심 부품 납품이 3주 늦어져 고객 약속과 계약 조건, 대체 업체 검토가 동시에 필요하다.', issues: ['대안 비교', '대외 협상', '손실 최소화'] },
-  { title: '팀 내 업무량 불균형 해소', summary: '특정 팀원에게 업무가 몰려 이직 의사가 나왔고, 다른 팀원은 역할 변경에 반대한다.', issues: ['업무 재배분', '면담', '성과 기준'] },
-  { title: '탄소 감축 목표 달성 방안', summary: '상반기 감축 실적이 목표의 40%에 그쳐 하반기 사업 조정안을 마련해야 한다.', issues: ['자료 분석', '실행 계획', '부서 협조'] },
+/* =====================================================================
+   1. 예시 데이터 (시안용으로 지어낸 내용)
+   ===================================================================== */
+const CHECKS0 = [
+  { id:'real',  name:'현실적합성',   color:'#f79009', calc:true,  where:[2,4,5], on:true,
+    prompt:'실제 있는 법령·제도인지, 그 직급에 그 권한이 있는지, 예산·인원 규모가 현실적인지, 날짜와 요일이 맞는지 점검한다. 문제마다 위치, 이유, 고친 안을 적는다.' },
+  { id:'typo',  name:'오탈자',       color:'#e31b54', calc:false, where:[2,4,5], on:true,
+    prompt:'맞춤법, 띄어쓰기, 오타, 기관명·인물명 표기 불일치를 찾는다.' },
+  { id:'calc',  name:'수치 계산',    color:'#7a5af8', calc:true,  where:[2,4,5], on:true,
+    prompt:'예산 합계, 비율, 증감률, 인원 합계를 찾아 계산 코드로 검산한다. 표와 차트 안의 숫자도 포함한다.' },
+  { id:'match', name:'자료 간 일치', color:'#0ba5ec', calc:true,  where:[2,4,5], on:true,
+    prompt:'같은 사실(금액, 날짜, 인물, 직위, 개수)이 자료마다 다르게 적혔는지, 자료끼리 조건이 충돌하는지 찾는다.' },
+  { id:'basis', name:'근거 없는 내용', color:'#66c61c', calc:false, where:[2,4,5], on:true,
+    prompt:'다른 자료에 근거가 없는 주장이나 결론을 찾는다.' },
+  { id:'expr',  name:'표현',         color:'#ee46bc', calc:false, where:[2,4,5], on:true,
+    prompt:'뜻이 모호한 용어, 응시자에게 정답을 알려 주는 표현, 차별적 표현을 찾는다.' },
+  { id:'struct',name:'구성 점검',     color:'#667085', calc:true,  where:[5], on:true,
+    prompt:'자료 번호가 빠지거나 겹치는지, 표지의 "총 n장" 안내와 실제 장수가 맞는지, 쪽 번호가 이어지는지 점검한다.' },
+  { id:'guide', name:'과제-가이드 일치', color:'#15b79e', calc:true, where:[2,4,5], on:true,
+    prompt:'평가자가이드가 정답 근거로 든 자료·수치가 과제에 실제로 있는지, 과제의 숫자와 가이드의 계산 답이 맞는지 점검한다.' },
 ];
-function generateTopics() {               // 실제 연결 시: 입력값 + 참고자료로 주제 후보 3개 요청
-  const start = (state.round * 3) % POOL.length; state.round++;
-  return POOL.slice(start, start + 3);
+const REVIEW_CHECK = { id:'review', name:'검토의견', color:'#2f5bea' };
+const CHAT_CHECK = { id:'chat', name:'채팅 요청', color:'#475467' };
+
+// 블록: g=묶음, doc=평가과제/평가자가이드
+const BLOCKS0 = [
+  { id:'c0', doc:'평가과제', g:'구조', title:'표지', page:'', text:'평가대상자용 과제 : 집단토론(GD)\n[ 평가과제 ]\n평가과제는 총 9장(표지 제외)으로 구성되어 있습니다.\n평가 시작 전, 빠진 쪽이 없는지 확인하십시오.' },
+  { id:'c1', doc:'평가과제', g:'구조', title:'평가방법 안내', page:'1', text:'· 평가 시간: 준비 30분, 토론 50분\n· 토론 중에는 자료에 메모할 수 있으나, 자료를 다른 평가대상자에게 보여 줄 수 없습니다.' },
+  { id:'c2', doc:'평가과제', g:'구조', title:'상황개요', page:'2', text:'※ 오늘은 2031년 3월 4일(수)입니다.\n귀하는 한빛시 교통국 소속 과장입니다. 한빛시는 공영자전거 "한빛바이크"를 7년째 운영하고 있으나 이용 감소와 운영 적자가 이어지고 있습니다.\n회의 안건: ① 한빛바이크 재정비의 기본 방향 수립 ② 각 과가 제안한 세부 사업 중 3개 선정' },
+  { id:'c3', doc:'평가과제', g:'구조', title:'가상조직', page:'3', text:'교통국장\n├ 교통정책과: 대중교통 정책 수립, 공영자전거 운영 총괄\n├ 재정관리과: 교통 사업 예산 편성·집행 관리\n└ 시민소통과: 민원 처리, 시민 의견 수렴' },
+  { id:'d1', doc:'평가과제', g:'공통 자료', title:'자료 1. 신문기사', page:'4', text:'한빛바이크, 7년 만에 갈림길에 서다\n한빛일보 박○○ 기자 / 2031. 2. 20.\n한빛바이크 이용 건수는 2028년 연 410만 건에서 2030년 연 296만 건으로 줄었다. 같은 기간 고장 자전거 비율은 8%에서 15%로 높아졌다. 시민들은 "빌리러 가면 고장 난 자전거만 남아 있다"고 말한다.\n시는 올해 안에 운영 방식을 바꾸겠다는 입장이다.' },
+  { id:'d2', doc:'평가과제', g:'공통 자료', title:'자료 2. 교통국장 이메일', page:'5', text:'보낸 사람: 교통국장\n받는 사람: 교통정책과장, 재정관리과장, 시민소통과장\n제목: 한빛바이크 재정비 회의 준비\n현재 대여소 320곳 가운데 이용이 적은 곳을 정리하고, 남는 예산을 정비 인력에 돌리는 방안도 검토해 주십시오. 회의에서 정한 사업은 바로 시행하고, 추가 예산은 교통정책과장이 직접 승인하는 것으로 하겠습니다.' },
+  { id:'d3', doc:'평가과제', g:'공통 자료', title:'자료 3. 운영 현황', page:'6~7', sheets:2, text:'[1/2] 연도별 이용 현황\n| 연도 | 이용 건수 | 대여소 | 고장 비율 |\n| 2028 | 410만 건 | 280곳 | 8% |\n| 2029 | 352만 건 | 295곳 | 11% |\n| 2030 | 296만 건 | 302곳 | 15% |\n자전거 대여률은 3년 연속 떨어졌다.\n[그림] 대여소 위치 지도\n[2/2] 2031년 예산(안)\n총 예산 48억 원: 운영 30억 원, 정비 12억 원, 홍보 4억 원\n이용 건수 감소율(2028→2030)은 약 28%다.' },
+  { id:'d4', doc:'평가과제', g:'평가대상자 A · 교통정책과', title:'자료 4. 교통정책과 제안 세부사업(안)', page:'9', text:'1) 대여소 재배치: 이용이 적은 대여소 60곳을 지하철역 주변으로 옮긴다. 비용 6억 원.\n2) 전기자전거 도입: 500대를 새로 들인다. 비용 15억 원.\n최근 이용자 만족도가 크게 떨어진 만큼 전기자전거 도입이 가장 바람직한 안이다.' },
+  { id:'d5', doc:'평가과제', g:'평가대상자 B · 재정관리과', title:'자료 5. 재정관리과 제안 세부사업(안)', page:'11', text:'1) 정비 인력 확충: 정비 인력을 12명에서 20명으로 늘린다. 비용 연 4억 원.\n2) 정기권 가격 조정: 월 5천 원에서 7천 원으로 올린다. 수입이 연 2억 원 늘어날 것으로 본다.\n정비를 운영 하는 업체와의 계약은 2031년 6월에 끝난다.' },
+  { id:'c9', doc:'평가과제', g:'구조', title:'마침', page:'', text:'본 과제를 마칩니다. 수고하셨습니다.' },
+  { id:'g1', doc:'평가자가이드', g:'평가자가이드', title:'과제 개요', page:'', text:'기법: 집단토론(3인)\n대상: 5급 과장급\n측정 역량: 문제해결, 조정·통합, 의사결정' },
+  { id:'g2', doc:'평가자가이드', g:'평가자가이드', title:'역량별 행동 지표', page:'', text:'· 문제해결: 이용 감소 원인을 자료 1·자료 3의 고장 비율 증가와 연결해 설명한다.\n· 조정·통합: 다른 과 제안의 장점을 인정하고 예산 안에서 묶는 안을 낸다.\n· 의사결정: 총예산 범위 안에서 3개 사업을 고르고 근거를 댄다.' },
+  { id:'g3', doc:'평가자가이드', g:'평가자가이드', title:'자료별 쟁점과 정답 근거', page:'', text:'· 자료 3(2/2): 총 예산 48억 원 안에서 사업비 합계를 맞춰야 한다.\n· 자료 1·자료 3: 고장 비율이 8%에서 15%로 높아진 것이 이용 감소의 핵심 원인이다.\n· 자료 5: 정비 업체 계약 종료(2031년 6월)는 정비 방식을 바꿀 기회다.' },
+  { id:'g4', doc:'평가자가이드', g:'평가자가이드', title:'평가자 질문', page:'', text:'· 고장 비율과 이용 감소의 관계를 어떻게 판단했습니까?\n· 자료 6에 나온 시민 설문 결과를 어떻게 반영했습니까?\n· 예산이 모자랄 때 어떤 사업을 먼저 줄이겠습니까?' },
+  { id:'g5', doc:'평가자가이드', g:'평가자가이드', title:'채점 기준', page:'', text:'5점: 원인 분석, 예산 제약, 다른 과 입장을 모두 반영한 조합을 제시\n3점: 원인은 맞게 찾았으나 예산 제약을 일부 놓침\n1점: 근거 없이 자기 과 사업만 주장' },
+];
+const GROUP_ORDER = ['구조','공통 자료','평가대상자 A · 교통정책과','평가대상자 B · 재정관리과','평가자가이드'];
+
+// 점검 버튼을 눌렀을 때 나올 예시 결과 (API 연결 지점: 점검 항목의 지침 프롬프트 + 문서 전체를 모델에 보내고, 계산 코드 결과와 합친다)
+const FINDINGS = [
+  { check:'real',  block:'c2', find:'3월 4일(수)', fix:'3월 4일(화)', why:'2031년 3월 4일은 화요일입니다. (날짜 계산 코드로 확인)' },
+  { check:'real',  block:'d2', find:'추가 예산은 교통정책과장이 직접 승인하는 것으로 하겠습니다.', fix:'추가 예산은 다음 추경 때 시의회에 올리는 것으로 하겠습니다.', why:'과장에게는 추가 예산을 승인할 권한이 없습니다. 추가 예산은 의회 의결을 거쳐야 합니다.' },
+  { check:'typo',  block:'d3', find:'대여률', fix:'대여율', why:'모음이나 ㄴ 받침 뒤에는 "율"을 씁니다.' },
+  { check:'typo',  block:'d5', find:'운영 하는', fix:'운영하는', why:'"운영하다"는 한 단어이므로 붙여 씁니다.' },
+  { check:'calc',  block:'d3', find:'총 예산 48억 원', fix:'총 예산 46억 원', why:'운영 30억 + 정비 12억 + 홍보 4억 = 46억 원인데 총액이 48억 원으로 적혀 있습니다. (계산 코드로 확인)' },
+  { check:'match', block:'d2', find:'대여소 320곳', fix:'대여소 302곳', why:'자료 3 표에는 2030년 대여소가 302곳으로 적혀 있습니다.' },
+  { check:'basis', block:'d4', find:'최근 이용자 만족도가 크게 떨어진 만큼', fix:'고장 자전거 비율이 15%까지 높아진 만큼', why:'과제 어디에도 이용자 만족도 자료가 없습니다. 자료 1·3에 있는 고장 비율로 근거를 바꿨습니다.' },
+  { check:'expr',  block:'d4', find:'전기자전거 도입이 가장 바람직한 안이다.', fix:'전기자전거 도입을 우선 검토해 주시기 바랍니다.', why:'"가장 바람직한 안"은 응시자에게 정답을 알려 주는 표현입니다.' },
+  { check:'struct',block:'c0', find:'총 9장', fix:'총 11장', why:'표지를 뺀 실제 장수는 11장입니다(안내 1, 상황개요 1, 가상조직 1, 자료 1~5 6장, 역할 간지 2).' },
+  { check:'guide', block:'g4', find:'자료 6에 나온 시민 설문 결과를 어떻게 반영했습니까?', fix:'자료 1에 나온 시민 반응을 어떻게 반영했습니까?', why:'평가과제에는 자료 6이 없습니다. 시민 의견은 자료 1에만 있습니다.' },
+];
+
+// 녹취록 예시 (API 연결 지점: 음성 인식 + 화자 구분 결과)
+const SPK_COLORS = ['#2f5bea','#d92d20','#079455','#dc6803','#7a5af8'];
+const TRANSCRIPT0 = [
+  { t:'00:00:15', s:0, text:'1차 검토회의 시작하겠습니다. 오늘은 자료 구성과 수치 위주로 보겠습니다.' },
+  { t:'00:03:12', s:1, text:'자료 3 두 번째 장에 총예산이 48억인데 항목을 더하면 46억이에요. 응시자가 계산하다 헷갈립니다.' },
+  { t:'00:03:40', s:2, text:'네, 총액을 항목 합계에 맞춰 고치겠습니다.' },
+  { t:'00:07:05', s:0, text:'자료 2랑 자료 3의 대여소 수가 달라요. 320곳, 302곳으로요.' },
+  { t:'00:07:20', s:2, text:'자료 3 표 기준으로 맞추겠습니다.' },
+  { t:'00:12:48', s:0, text:'자료 4 끝 문장에 "가장 바람직한 안"이라고 돼 있으면 답을 알려 주는 거예요.' },
+  { t:'00:13:30', s:1, text:'저는 오히려 교통정책과 입장이 좀 더 세게 드러나야 토론이 살 것 같아요.' },
+  { t:'00:14:02', s:2, text:'주장은 유지하되 정답처럼 읽히는 표현만 바꾸겠습니다.' },
+  { t:'00:41:10', s:3, text:'2차 검토회의는 3월 18일 오전 10시로 하겠습니다.' },
+];
+// 보고서 표의 의견 행 (API 연결 지점: 녹취록 + 양식 칸 구성 + 지침 프롬프트로 생성)
+const REPORT_ROWS = [
+  { loc:'과제 전반', op:'자료 구성과 수치 위주로 검토함.', plan:'아래 의견을 2차 검토 전까지 반영하겠음.', src:0 },
+  { loc:'[자료3. 운영 현황(2/2), 7page]', op:'총예산(48억 원)과 항목별 합계(46억 원)가 맞지 않아 응시자가 계산할 때 혼선이 생길 수 있음.', plan:'총액을 항목 합계에 맞춰 46억 원으로 수정하겠음.', src:1, req:{check:'calc'} },
+  { loc:'[자료2. 교통국장 이메일, 5page]', op:'대여소 수가 자료2(320곳)와 자료3(302곳)에서 서로 다름.', plan:'자료3 표 기준(302곳)으로 맞추겠음.', src:3, req:{check:'match'} },
+  { loc:'[자료4. 교통정책과 제안 세부사업(안), 9page]', op:'끝 문장의 "가장 바람직한 안" 표현이 정답을 알려 줄 수 있음. 반면 교통정책과 입장은 더 분명히 드러나야 한다는 의견도 있음.', plan:'주장은 유지하되 정답처럼 읽히는 표현만 바꾸겠음.', src:5, conflict:true, req:{check:'expr'},
+    ref:'참고: 2029년 ○○시 집단토론 과제 자료 6 — 과별 제안서를 "우선 검토 요청" 문장으로 끝내 입장은 드러내되 결론은 열어 둠' },
+];
+const FORM_FIELDS = [
+  { k:'제목줄(연도, 기관, 직급, 기법, 차수)', how:'프로젝트 정보', v:'ai' },
+  { k:'건명, 일시', how:'프로젝트 정보 + 녹음 파일 날짜', v:'ai' },
+  { k:'참석인원(총 n명, 구분별 소속·이름)', how:'화자 정보', v:'ai' },
+  { k:'회의내용 표: 위치 행', how:'평가과제 pptx의 자료 제목·장·쪽', v:'ai' },
+  { k:'회의내용 표: 검토위원 의견', how:'검토위원 발언 요약', v:'ai' },
+  { k:'회의내용 표: 발주처 의견', how:'회의 뒤 발주처가 채움', v:'empty' },
+  { k:'회의내용 표: 개선 및 반영 방향', how:'개발사 답변 요약, "~하겠음" 문체', v:'ai' },
+  { k:'향후일정 표', how:'회의에서 나온 다음 일정', v:'ai' },
+];
+const TOPICS = [
+  { title:'공영자전거 사업 재정비', sum:'이용 감소와 적자가 이어지는 공영자전거 사업을 두고 3개 과가 서로 다른 사업을 제안한다.',
+    similar:[['2027 ○○시 공공자전거 요금 개편 (서류함)','중간'],['2028 △△도 시내버스 노선 조정 (집단토론)','낮음']],
+    checks:[['직급에 맞는 권한·규모','✓'],['특정 직렬 유리 여부','△ 교통 직렬에 다소 유리'],['시의성(최근 1년 보도)','✓ 기사 다수'],['기법 적합성(3인 이해 대립)','✓']] },
+  { title:'노후 공공청사 복합개발', sum:'노후 청사를 복합시설로 다시 짓는 안을 두고 예산, 주민 요구, 공사 중 업무 공백이 부딪친다.',
+    similar:[['2025 ○○구 청사 이전 갈등 (역할수행)','낮음']],
+    checks:[['직급에 맞는 권한·규모','✓'],['특정 직렬 유리 여부','△ 건축 직렬에 다소 유리'],['시의성(최근 1년 보도)','✓'],['기법 적합성(3인 이해 대립)','✓']] },
+  { title:'폭염 대응 무더위쉼터 운영 개편', sum:'무더위쉼터 이용이 일부 지역에 몰려, 운영 시간·장소·인력 배치를 다시 짜야 한다.',
+    similar:[],
+    checks:[['직급에 맞는 권한·규모','✓'],['특정 직렬 유리 여부','✓'],['시의성(최근 1년 보도)','✓ 여름철 보도 많음'],['기법 적합성(3인 이해 대립)','△ 대립 구도 보강 필요']] },
+  { title:'공공 체육시설 야간 개방 확대', sum:'야간 개방 요구가 늘었지만 관리 인력·안전 예산·소음 민원이 함께 걸려 있다.',
+    similar:[['2026 ○○시 학교 운동장 개방 (서류함)','높음']],
+    checks:[['직급에 맞는 권한·규모','✓'],['특정 직렬 유리 여부','✓'],['시의성(최근 1년 보도)','△'],['기법 적합성(3인 이해 대립)','✓']] },
+];
+const PROMPTS0 = [
+  { id:1, name:'① 주제 탐색', mode:'skill', skill:'ac-topic-storymap', files:['SKILL.md','references/점검표.md','references/스토리맵_양식.md'], text:'', ver:[['v3','2026-11-02','관리자','스킬 다시 올림']] },
+  { id:2, name:'② 과제 초안 (평가과제 + 평가자가이드)', mode:'skill', skill:'isomorph-ac', files:['SKILL.md','references/기법별_구성.md','scripts/pptx_build.py'], text:'', ver:[['v5','2026-11-05','관리자','가이드 동시 생성 설정']] },
+  { id:3, name:'③ 검토회의 보고서', mode:'prompt', text:'녹취록에서 검토위원의 의견과 개발사의 답변을 짝지어 찾는다.\n의견마다 위치(자료 제목, 장, 인쇄 쪽), 검토위원 의견, 개선 및 반영 방향을 쓴다.\n반영 방향은 "~하겠음"으로 끝낸다. 양식에 이전 회차 내용이 있으면 그 문체와 위치 표기를 따른다.\n발언에 없는 내용은 쓰지 않는다.', ver:[['v2','2026-11-08','관리자','위치 표기 규칙 추가'],['v1','2026-11-01','관리자','처음 작성']] },
+  { id:4, name:'④ 검토의견 반영', mode:'prompt', text:'수정 요청마다 해당 블록을 찾아 고친 안을 만든다.\n참고자료 저장소에서 같은 기법의 다른 과제와 가이드를 찾아 근거를 한 줄로 붙인다.\n고친 내용 때문에 바뀌어야 할 다른 블록(평가자가이드 포함)을 함께 알려 준다.', ver:[['v1','2026-11-01','관리자','처음 작성']] },
+];
+const LIB = [
+  ['기출 과제','○○시','2027','서류함','5급'],['기출 과제','△△도','2028','집단토론','5급'],['평가자가이드','△△도','2028','집단토론','5급'],
+  ['기출 과제','○○구','2025','역할수행','4급'],['주제풀 CSV','○○시','2026','전체','전체'],['기관 자료','○○시','2026','-','-'],
+];
+
+/* =====================================================================
+   2. 상태
+   ===================================================================== */
+const clone = o => JSON.parse(JSON.stringify(o));
+const S = {
+  mode:'user', stage:1, adminTab:'prompts', web:true,
+  checks:clone(CHECKS0), prompts:clone(PROMPTS0),
+  // ① 주제 탐색
+  s1:{ client:'', grade:'', method:'집단토론', useDb:true, usePool:true, want:'', cands:null, shift:0, topic:null },
+  // ② 초안
+  slots:{ story:null, task:null, guide:null }, draft:'none',
+  blocks:clone(BLOCKS0), base:{}, cur:'d1', issues:[], history:[], impact:{},
+  scope:null, diff:false, panel:'chat', chat:[], mtab:'doc', activeIssue:null,
+  // ③ 보고서
+  audio:null, stt:'idle', speakers:[], lines:[], playing:null, editSpk:null, form:'saved', fields:clone(FORM_FIELDS), linkPptx:true, report:false,
+  // ④
+  reqs:REPORT_ROWS.filter(r=>r.req).map((r,i)=>({ ...r, on:true, i })), s4:'list',
+  // 관리자
+  editCheck:null, editPrompt:1,
+};
+S.blocks.forEach(b => S.base[b.id] = b.text);
+const $ = id => document.getElementById(id);
+const B = id => S.blocks.find(b => b.id === id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const chk = id => S.checks.find(c => c.id === id) || (id==='review'?REVIEW_CHECK:CHAT_CHECK);
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.remove('hidden'); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.add('hidden'),2200); }
+
+/* =====================================================================
+   3. 화면 그리기
+   ===================================================================== */
+const STAGES = ['주제 탐색','과제 초안','검토회의 보고서','검토의견 반영','검수'];
+const ADMIN = [['prompts','지침 관리'],['checks','점검 항목 관리'],['lib','참고자료 저장소'],['forms','양식 관리'],['settings','설정']];
+function render() {
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === S.mode));
+  $('proj').textContent = S.s1.topic ? `프로젝트: ${S.s1.topic.title} · ${S.s1.method}` : '프로젝트: 새 과제';
+  $('stages').innerHTML = S.mode === 'user'
+    ? STAGES.map((n,i)=>`<button data-act="stage" data-v="${i+1}" class="${S.stage===i+1?'on':''} ${doneStage(i+1)?'done':''}"><b>${i+1}</b>${n}</button>`).join('')
+    : '';
+  hidePop();
+  $('main').innerHTML = S.mode === 'admin' ? vAdmin() : [v1,v2,v3,v4,v5][S.stage-1]();
 }
-function showTopics() {
-  go(2);
-  $('s2lead').textContent = `${state.method} · ${state.target} · ${state.comp.join(', ')}` +
-    (state.files.length ? ` · 참고 자료 ${state.files.length}개 반영` : '');
-  $('topics').innerHTML = '<div class="loading">주제 후보를 만드는 중…</div>';
-  setTimeout(() => {
-    const list = generateTopics();
-    $('topics').innerHTML = '';
-    list.forEach(t => {
-      const b = document.createElement('button'); b.className = 'topic';
-      b.innerHTML = `<h3>${t.title}</h3><p>${t.summary}</p><div class="tags">${t.issues.map(i => `<span>${i}</span>`).join('')}</div>`;
-      b.onclick = () => pickTopic(t);
-      $('topics').appendChild(b);
+function doneStage(n){ return (n===1&&S.s1.topic)||(n===2&&S.draft==='ready')||(n===3&&S.report)||(n===4&&S.s4==='edit'); }
+
+/* ---------- ① 주제 탐색 ---------- */
+function v1() {
+  const s = S.s1;
+  if (s.topic) return `<div class="narrow">
+    <h1>스토리맵</h1><p class="lead">고를 주제: ${esc(s.topic.title)}. 고칠 곳은 아래 채팅으로 요청하거나, 과제 초안 단계의 편집 화면에서 고칠 수 있습니다.</p>
+    <div class="card">
+      <h2 style="margin-top:0">주제</h2><p>${esc(s.topic.title)}</p>
+      <h2>상황</h2><p>${esc(s.topic.sum)}</p>
+      <h2>이해 대립 구조</h2><table class="t"><tr><th>역할</th><th>입장</th></tr>
+        <tr><td>평가대상자 A · 교통정책과</td><td>대여소 재배치와 전기자전거 도입으로 이용을 늘려야 한다.</td></tr>
+        <tr><td>평가대상자 B · 재정관리과</td><td>정비 인력을 늘리고 정기권 가격을 조정해 적자부터 줄여야 한다.</td></tr></table>
+      <h2>자료 구성 계획</h2><p>공통 자료 3개(신문기사, 국장 이메일, 운영 현황) + 역할별 자료 각 1개</p>
+      <h2>역량 연결</h2><p>문제해결: 고장 비율과 이용 감소의 관계 · 조정·통합: 과별 제안 묶기 · 의사결정: 예산 안에서 3개 사업 선정</p>
+    </div>
+    <div class="row"><button class="btn" data-act="s1back">다른 주제 고르기</button><span class="grow"></span>
+      <button class="btn pri" data-act="toDraft">과제 초안으로 넘기기</button></div></div>`;
+  return `<div class="narrow">
+    <h1>주제 탐색</h1><p class="lead">기출 과제·주제풀과 겹치지 않는 주제 후보를 찾습니다. 지침: <span class="tag blue">${esc(S.prompts[0].mode==='skill'?S.prompts[0].skill:'지침 프롬프트')}</span></p>
+    <div class="row" style="gap:12px">
+      <div class="field grow"><label>발주처</label><input type="text" data-bind="s1.client" value="${esc(s.client)}" placeholder="예: ○○시"></div>
+      <div class="field grow"><label>직급</label><input type="text" data-bind="s1.grade" value="${esc(s.grade)}" placeholder="예: 5급 과장급"></div>
+    </div>
+    <div class="field"><label>평가 기법</label><div class="row">${['서류함','역할수행','발표','집단토론'].map(m=>`<button class="chip ${s.method===m?'on':''}" data-act="s1method" data-v="${m}">${m}</button>`).join('')}</div></div>
+    <div class="field"><label>찾아볼 자료</label><div class="row">
+      <label class="switch"><input type="checkbox" data-bind="s1.useDb" ${s.useDb?'checked':''}> 기출 DB <span class="muted">(128건)</span></label>
+      <label class="switch"><input type="checkbox" data-bind="s1.usePool" ${s.usePool?'checked':''}> 발주처 주제풀 <span class="muted">(40건)</span></label>
+      <label class="switch"><input type="checkbox" ${S.web?'checked':'disabled'}> 웹 검색 ${S.web?'':'<span class="muted">(관리자가 꺼 둠)</span>'}</label></div></div>
+    <div class="field"><label>원하는 방향 <small>선택</small></label><textarea data-bind="s1.want" placeholder="예: 환경 분야는 빼고, 예산 배분 갈등이 있는 주제">${esc(s.want)}</textarea></div>
+    <button class="btn pri big" data-act="findTopics">주제 후보 찾기</button>
+    <div id="cands">${s.cands ? candsHTML() : ''}</div></div>`;
+}
+function candsHTML() {
+  const list = [0,1,2].map(i => TOPICS[(i + S.s1.shift) % TOPICS.length]);
+  return `<h2>주제 후보 3개</h2>` + list.map((t,i)=>`<div class="card cand">
+      <h3>${esc(t.title)}</h3><p class="muted" style="font-size:13px">${esc(t.sum)}</p>
+      <div class="grid">
+        <div><div class="lbl" style="font-size:13px">비슷한 기출 과제</div><ul>${t.similar.length?t.similar.map(([n,l])=>`<li>${esc(n)} <span class="tag ${l==='높음'?'warn':''}">겹침 ${l}</span></li>`).join(''):'<li class="muted">비슷한 기출 없음</li>'}</ul></div>
+        <div><div class="lbl" style="font-size:13px">유불리·시의성 점검표</div><ul>${t.checks.map(([k,v])=>`<li>${v.startsWith('✓')?'✅':'⚠️'} ${esc(k)} <span class="muted">${esc(v.replace(/^[✓△]\s?/,''))}</span></li>`).join('')}</ul></div>
+      </div>
+      <div class="row"><span class="muted" style="font-size:12px">근거: 기출 DB${S.web?' · 최근 기사 3건':' · 사내 자료만 사용'}</span><span class="grow"></span>
+        <button class="btn pri" data-act="pickTopic" data-v="${(i + S.s1.shift) % TOPICS.length}">이 주제로 스토리맵 만들기</button></div></div>`).join('') +
+    `<div class="row"><input type="text" id="s1ask" class="grow" placeholder="조건 추가 (예: 환경 분야는 빼 줘)"><button class="btn" data-act="reroll">다른 후보 보기</button></div>`;
+}
+
+/* ---------- ② 과제 초안 ---------- */
+function v2() {
+  if (S.draft === 'ready') return editorHTML(2);
+  if (S.draft === 'loading') return `<div class="loading">평가과제와 평가자가이드 초안을 만드는 중…</div>`;
+  const slot = (k, label, hint) => `<label class="slot ${S.slots[k]?'ok':''}">
+      <span class="grow"><b>${label}</b><br><span class="muted">${S.slots[k] ? '✅ ' + esc(S.slots[k]) : hint}</span></span>
+      <span class="btn sm">${S.slots[k]?'바꾸기':'파일 올리기'}</span><input type="file" data-slot="${k}"></label>`;
+  return `<div class="narrow"><h1>과제 초안</h1><p class="lead">세 파일을 넣으면 평가과제와 평가자가이드 초안을 함께 만듭니다. 지침: <span class="tag blue">${esc(S.prompts[1].mode==='skill'?S.prompts[1].skill:'지침 프롬프트')}</span></p>
+    ${slot('story','스토리맵','① 주제 탐색에서 만들면 자동으로 들어옵니다')}
+    ${slot('task','참조할 평가과제','pptx 또는 pdf')}
+    ${slot('guide','참조할 평가자가이드','pptx, pdf 또는 docx')}
+    <button class="btn pri big" style="margin-top:8px" data-act="makeDraft" ${S.slots.story&&S.slots.task&&S.slots.guide?'':'disabled'}>초안 만들기</button>
+    <p class="muted" style="margin-top:8px">시안에서는 아무 파일이나 올려도 같은 예시 초안이 나옵니다. <a href="#" data-act="fillSlots">예시 파일로 채우기</a></p></div>`;
+}
+
+/* ---------- 공통 편집 화면 ---------- */
+function editorHTML(stage) {
+  const b = B(S.cur);
+  const checks = S.checks.filter(c => c.on && c.where.includes(stage));
+  const open = S.issues.filter(i => i.status === 'open');
+  const groups = {};
+  S.blocks.forEach(x => (groups[x.g] = groups[x.g] || []).push(x));
+  let tree = '', lastDoc = '';
+  GROUP_ORDER.forEach(g => {
+    if (!groups[g]) return;
+    const d = groups[g][0].doc;
+    if (d !== lastDoc) { tree += `<div class="top">${d}</div>`; lastDoc = d; }
+    if (g !== '평가자가이드') tree += `<div class="grp">${esc(g)}</div>`;
+    groups[g].forEach(x => {
+      const n = open.filter(i => i.block === x.id).length;
+      tree += `<button data-act="pick" data-v="${x.id}" class="${x.id===S.cur?'on':''}">
+        ${x.text!==S.base[x.id]?'<span class="dot" title="바뀐 블록"></span>':''}${S.impact[x.id]?'<span title="함께 확인 필요">⚠️</span>':''}
+        <span>${esc(x.title)}</span>${n?`<span class="cnt">${n}</span>`:''}<span class="pg">${x.page?x.page+'쪽':''}</span></button>`;
     });
-  }, 600);
-}
-$('reroll').onclick = showTopics;
-$('back1').onclick = () => go(1);
-
-/* ---------- 3단계 ---------- */
-function generateDocs(t) {                // 실제 연결 시: 선택한 주제로 스토리맵·과제지·평정가이드 요청
-  const c = state.comp;
-  const role = state.method === '서류함' ? '처리할 자료' : state.method === '역할수행' ? '상대역 정보' : state.method === '발표' ? '발표 요구사항' : '토론 쟁점';
-  return {
-    story: `
-      <h2>주제</h2><p>${t.title}</p>
-      <h2>상황 요약</h2><p>${t.summary}</p>
-      <h2>평가 설계</h2>
-      <table><tr><th>평가 역량</th><th>과제 속 장면</th></tr>
-      ${c.map((x, i) => `<tr><td>${x}</td><td>${t.issues[i % t.issues.length]}이(가) 드러나는 자료 ${i + 1}~${i + 2}</td></tr>`).join('')}</table>
-      <h2>기본 정보</h2><ul><li>평가 기법: ${state.method}</li><li>대상: ${state.target}</li><li>권장 수행 시간: ${state.method === '서류함' ? '60분' : '30분 준비 + 20분 수행'}</li></ul>`,
-    task: `
-      <h2>안내</h2><p>귀하는 오늘부터 ${state.target}(으)로 일하게 되었습니다. 아래 자료를 검토하고 ${state.method === '발표' ? '발표 자료를 준비하십시오.' : '필요한 조치를 정하십시오.'}</p>
-      <h2>${role}</h2>
-      <ul>
-        <li>자료 1. 현황 보고 — ${t.summary}</li>
-        <li>자료 2. 관련 부서 의견 — ${t.issues[0]}에 대한 두 부서의 서로 다른 입장</li>
-        <li>자료 3. 수치 자료 — 최근 3년 예산·인력 추이 표</li>
-        <li>자료 4. 상급자 지시 — 이번 주 금요일까지 처리 방안 보고 요청</li>
-      </ul>
-      <h2>제출물</h2><p>${state.method === '서류함' ? '자료별 처리 내용과 판단 근거를 답안지에 적으십시오.' : '핵심 판단과 근거를 3가지 이내로 정리하십시오.'}</p>`,
-    guide: `
-      <h2>역량별 행동 지표</h2>
-      <table><tr><th>역량</th><th>잘한 행동</th><th>부족한 행동</th></tr>
-      ${c.map(x => `<tr><td>${x}</td><td>자료 2와 3을 연결해 원인을 수치로 제시함</td><td>한쪽 부서 의견만 근거로 결론을 냄</td></tr>`).join('')}</table>
-      <h2>점수 기준</h2><ul><li>5점: 모든 자료의 쟁점을 찾고, 우선순위와 근거를 함께 제시</li><li>3점: 주요 쟁점은 찾았으나 근거가 일부 빠짐</li><li>1점: 쟁점을 놓치거나 근거 없이 결론만 제시</li></ul>
-      <h2>평가자 질문 예시</h2><ul><li>자료 2의 두 의견 중 무엇을 먼저 반영했고, 그 이유는 무엇입니까?</li><li>상급자 마감에 맞추지 못한다면 어떻게 보고하겠습니까?</li></ul>`
-  };
-}
-function pickTopic(t) {
-  state.chosen = t; go(3);
-  $('s3title').textContent = t.title;
-  $('s3meta').textContent = `${state.method} · ${state.target} · ${state.comp.join(', ')}`;
-  $('doc').innerHTML = '<div class="loading">스토리맵, 과제지, 평정가이드를 만드는 중…</div>';
-  setTimeout(() => { state.docs = generateDocs(t); render(); }, 800);
-}
-function render() { $('doc').innerHTML = state.docs[state.tab] || ''; }
-$('tabs').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
-  state.tab = b.dataset.tab; render();
-});
-$('askform').addEventListener('submit', e => {   // 실제 연결 시: 현재 탭 문서 + 요청문으로 수정 요청
-  e.preventDefault();
-  const q = $('ask').value.trim(); if (!q) return;
-  $('ask').value = '';
-  state.docs[state.tab] += `<p class="changed">[반영됨] ${q.replace(/</g, '&lt;')}</p>`;
-  render(); flash('수정 내용을 반영했습니다.');
-});
-$('copy').onclick = () => {
-  navigator.clipboard?.writeText($('doc').innerText).then(() => flash('복사했습니다.'), () => flash('복사하지 못했습니다.'));
-};
-$('download').onclick = () => {
-  const html = `<html><meta charset="utf-8"><body>${['story', 'task', 'guide'].map(k => state.docs[k]).join('<hr>')}</body></html>`;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([html], { type: 'application/msword' }));
-  a.download = `${state.chosen.title}.doc`; a.click();
-};
-$('back2').onclick = showTopics;
-function flash(msg) { $('toast').textContent = msg; setTimeout(() => $('toast').textContent = '', 2000); }
-
-/* ---------- 공통 ---------- */
-function go(n) {
-  ['s1', 's2', 's3'].forEach((id, i) => $(id).classList.toggle('hidden', i + 1 !== n));
-  $('askbar').classList.toggle('hidden', n !== 3);
-  document.querySelectorAll('#steps span').forEach(s => {
-    const k = +s.dataset.step;
-    s.className = k === n ? 'on' : k < n ? 'done' : '';
   });
-  window.scrollTo(0, 0);
+  const summary = stage === 5 ? `<div class="summary">${S.checks.filter(c=>c.on&&c.where.includes(5)).map(c=>{
+      const n = S.issues.filter(i=>i.check===c.id&&i.status==='open').length; return `<span class="tag" style="border-left:3px solid ${c.color}">${esc(c.name)} ${n}</span>`; }).join('')}</div>` : '';
+  const tabs = [['chat','채팅'],['issues',`점검 결과 ${open.length}`],['hist',`버전 기록 ${S.history.length}`]];
+  return `
+  ${stage===4?reqSummary():''}
+  ${summary}
+  <div class="mtabs seg">${[['tree','목록'],['doc','문서'],['side','채팅·결과']].map(([k,n])=>`<button data-act="mtab" data-v="${k}" class="${S.mtab===k?'on':''}">${n}</button>`).join('')}</div>
+  <div class="ed">
+    <section class="tree ${S.mtab!=='tree'?'mhide':''}">${tree}</section>
+    <section class="${S.mtab!=='doc'?'mhide':''}">
+      <div class="docbar">
+        ${stage===5?`<button class="btn pri sm" data-act="runAll">전체 점검</button>`:''}
+        ${checks.map(c=>`<button class="ckbtn" style="--c:${c.color}" data-act="runCheck" data-v="${c.id}">${esc(c.name)}</button>`).join('')}
+        <span class="grow"></span>
+        <label class="switch" style="font-size:12px"><input type="checkbox" data-act="diff" ${S.diff?'checked':''}> 바뀐 부분 보기</label>
+        <button class="btn sm" data-act="export">${stage===2?'pptx·가이드 받기':'pptx로 받기'}</button>
+      </div>
+      <div class="doc">
+        ${S.impact[b.id]?`<div class="impact">⚠️ <span class="grow">함께 확인 필요: ${esc(S.impact[b.id])}</span><button class="btn sm" data-act="impactOk">확인함</button></div>`:''}
+        <div class="title">${esc(b.title)}</div>
+        <div class="meta">${b.doc} · ${esc(b.g)}${b.page?` · ${b.page}쪽`:''}${b.sheets?` · ${b.sheets}장`:''} — 글자를 드래그하면 그 부분만 고칠 수 있습니다.</div>
+        <div id="docbody">${S.diff ? diffHTML(S.base[b.id], b.text) : bodyHTML(b)}</div>
+      </div>
+    </section>
+    <section class="side ${S.mtab!=='side'?'mhide':''}">
+      <div class="ptabs">${tabs.map(([k,n])=>`<button data-act="panel" data-v="${k}" class="${S.panel===k?'on':''}">${n}</button>`).join('')}</div>
+      <div class="pbody" id="pbody">${S.panel==='chat'?chatHTML():S.panel==='issues'?issuesHTML():histHTML()}</div>
+      <div class="ask">
+        <div class="scope">수정 범위: <span>${S.scope?esc(S.scope.label):esc(b.title)}</span>${S.scope?`<button class="btn sm" data-act="clearScope">해제</button>`:''}</div>
+        <form data-act-submit="ask"><input type="text" id="askIn" class="grow" placeholder="예: 현실적합성 떨어지는 부분 알려 줘"><button class="btn pri">보내기</button></form>
+      </div>
+    </section>
+  </div>`;
 }
-go(1);
+function bodyHTML(b) {
+  // 열린 점검 결과 위치에 밑줄 표시
+  let marks = S.issues.filter(i => i.block === b.id && i.status === 'open');
+  return b.text.split('\n').map(line => {
+    if (/^\[\d+\/\d+\]/.test(line)) return `<div class="sheet">${esc(line)}</div>`;
+    if (/^\[그림\]/.test(line)) return `<div class="figure">🖼 ${esc(line.slice(4).trim())} — 그림은 AI가 고치지 않습니다. 직접 고쳐야 할 곳으로 표시됩니다.</div>`;
+    let h = esc(line);
+    marks.forEach(m => { const f = esc(m.find); if (h.includes(f)) h = h.replace(f, `<mark class="iss ${S.activeIssue===m.id?'sel':''}" style="--c:${chk(m.check).color}" data-act="focusIssue" data-v="${m.id}">${f}</mark>`); });
+    if (line.startsWith('|')) return `<table><tr>${h.split('|').slice(1,-1).map(c=>`<td>${c.trim()}</td>`).join('')}</tr></table>`;
+    return `<p>${h || '&nbsp;'}</p>`;
+  }).join('').replace(/<\/table><table>/g,'');
+}
+function diffHTML(a, b) {
+  if (a === b) return `<p class="muted">초안과 비교해 바뀐 부분이 없습니다.</p>` + bodyHTML({ ...B(S.cur), text:b });
+  const A = a.split(/(\s+)/), Bt = b.split(/(\s+)/), n = A.length, m = Bt.length;
+  const L = Array.from({length:n+1},()=>new Int16Array(m+1));
+  for (let i=n-1;i>=0;i--) for (let j=m-1;j>=0;j--) L[i][j] = A[i]===Bt[j] ? L[i+1][j+1]+1 : Math.max(L[i+1][j], L[i][j+1]);
+  let i=0,j=0,out='';
+  while (i<n && j<m) { if (A[i]===Bt[j]) { out+=esc(A[i]); i++; j++; } else if (L[i+1][j]>=L[i][j+1]) out+=`<del>${esc(A[i++])}</del>`; else out+=`<ins>${esc(Bt[j++])}</ins>`; }
+  while (i<n) out+=`<del>${esc(A[i++])}</del>`; while (j<m) out+=`<ins>${esc(Bt[j++])}</ins>`;
+  return `<p class="muted" style="font-size:12px">초안과 비교: <del>지운 글자</del> <ins>넣은 글자</ins></p>` + out.split('\n').map(l=>`<p>${l||'&nbsp;'}</p>`).join('');
+}
+function chatHTML() {
+  if (!S.chat.length) return `<p class="muted">점검 버튼에 없는 점검이나 수정은 여기에 적으세요.<br><br>예)<br>· 자료 2를 더 짧게 줄여 줘<br>· 자료 3과 자료 5의 예산이 맞는지 다시 봐 줘<br>· 현실적합성 떨어지는 부분 알려 줘</p>`;
+  return S.chat.map(m => `<div class="msg ${m.me?'me':'ai'}">${esc(m.t)}</div>`).join('');
+}
+function issuesHTML() {
+  if (!S.issues.length) return `<p class="muted">점검 버튼을 누르거나 채팅으로 점검을 요청하면 결과가 여기에 쌓입니다.</p>`;
+  const sorted = [...S.issues].sort((a,b)=>(a.status==='open'?0:1)-(b.status==='open'?0:1));
+  return sorted.map(i => { const c = chk(i.check), b = B(i.block);
+    return `<div class="issue ${i.status!=='open'?'done':''}" style="--c:${c.color}" id="iss-${i.id}">
+      <div class="h"><b>${esc(c.name)}</b><span class="loc">${esc(b.title)}${b.page?` · ${b.page}쪽`:''}</span></div>
+      <div>${esc(i.why)}</div>
+      <div class="muted" style="margin-top:4px">원문: “${esc(i.find)}”</div>
+      ${i.status==='open'?`<textarea data-fix="${i.id}">${esc(i.fix)}</textarea>
+        <div class="row"><button class="btn sm pri" data-act="apply" data-v="${i.id}">반영</button><button class="btn sm" data-act="ignore" data-v="${i.id}">무시</button>
+        <button class="btn sm" data-act="focusIssue" data-v="${i.id}">위치 보기</button></div>`
+        :`<div class="muted">${i.status==='applied'?'✅ 반영함':'무시함'}</div>`}
+      ${i.ref?`<div class="ref">📎 ${esc(i.ref)}</div>`:''}</div>`; }).join('');
+}
+function histHTML() {
+  if (!S.history.length) return `<p class="muted">고친 내용이 버전으로 쌓입니다. 아무 버전이나 골라 되돌릴 수 있습니다.</p>`;
+  return [...S.history].reverse().map(h => `<div class="hist"><div><b>v${h.v}</b> · ${h.who} · ${esc(B(h.block).title)}</div>
+    <div class="muted">${esc(h.why)}</div><div class="row" style="margin-top:4px"><button class="btn sm" data-act="viewVer" data-v="${h.v}">이 블록 보기</button>
+    <button class="btn sm" data-act="restore" data-v="${h.v}">이 수정 전으로 되돌리기</button></div></div>`).join('');
+}
+
+/* ---------- ③ 검토회의 보고서 ---------- */
+function v3() {
+  if (!S.audio) return `<div class="narrow"><h1>검토회의 결과보고서</h1><p class="lead">회의 녹음을 올리면 글로 바꾸고 화자를 나눕니다. 그다음 양식의 칸을 채웁니다.</p>
+    <label class="slot"><span class="grow"><b>회의 녹음 파일</b><br><span class="muted">mp3, m4a, wav</span></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="audio" accept="audio/*"></label>
+    <div class="field" style="margin-top:12px"><label>참석 인원</label><div class="row">${['자동','3명','4명','5명'].map((n,i)=>`<button class="chip ${i===0?'on':''}">${n}</button>`).join('')}</div></div>
+    <p class="muted"><a href="#" data-act="demoAudio">예시 녹음으로 해 보기</a></p></div>`;
+  if (S.stt === 'running') return `<div class="loading">음성을 글로 바꾸고 화자를 나누는 중… (예시: 1시간 녹음 기준 약 5분)</div>`;
+  const spk = S.speakers;
+  const edit = S.editSpk !== null ? (() => { const p = spk[S.editSpk]; return `<div class="card" style="border-color:var(--accent)">
+      <div class="lbl">Speaker ${S.editSpk+1} 정보 고치기 <span class="muted">— 이 화자의 모든 발언에 한 번에 적용됩니다</span></div>
+      <div class="row"><input type="text" id="spName" class="grow" placeholder="이름" value="${esc(p.name.startsWith('Speaker')?'':p.name)}">
+      <input type="text" id="spOrg" class="grow" placeholder="소속 (예: ○○대학교 교수)" value="${esc(p.org)}">
+      <select id="spRole" style="width:auto">${['','검토위원','발주처','개발사'].map(r=>`<option ${p.role===r?'selected':''} value="${r}">${r||'구분 선택'}</option>`).join('')}</select>
+      <button class="btn pri" data-act="saveSpk">저장</button><button class="btn" data-act="cancelSpk">취소</button></div></div>`; })() : '';
+  return `<h1>검토회의 결과보고서</h1><p class="lead">${esc(S.audio)} · 화자 ${spk.length}명 · 발언 ${S.lines.length}개</p>
+  <div class="row" style="margin-bottom:10px">${spk.map((p,i)=>`<button class="spk" style="--sc:${p.c}" data-act="editSpk" data-v="${i}"><i></i><b>${esc(p.name)}</b>${p.role?`<span class="tag">${p.role}</span>`:''}<span class="muted">✏️</span></button>`).join('')}</div>
+  ${edit}
+  <div class="card" style="max-height:420px;overflow-y:auto;padding:8px" id="tscript">
+    ${S.playing!==null?`<div class="player">▶ ${S.lines[S.playing].t}부터 재생 중 <button class="btn sm" data-act="stop" style="float:right;color:var(--text)">멈춤</button></div>`:''}
+    ${S.lines.map((l,i)=>{ const p = spk[l.s]; return `<div class="line ${S.playing===i?'on':''}" style="--sc:${p.c}" id="ln-${i}">
+      <div class="who">${esc(p.name)}<br><select data-line="${i}" title="화자 바꾸기">${spk.map((q,k)=>`<option value="${k}" ${k===l.s?'selected':''}>${esc(q.name)}</option>`).join('')}</select></div>
+      <div class="time"><a href="#" data-act="play" data-v="${i}">▶ ${l.t}</a></div>
+      <div class="txt" contenteditable="true" data-txt="${i}">${esc(l.text)}</div></div>`; }).join('')}
+  </div>
+  <h2>양식 채우기</h2>
+  <div class="card">
+    <div class="field"><label>양식</label><select data-bind="form">
+      <option value="saved" ${S.form==='saved'?'selected':''}>○○시 5급 역량평가 · 과제 검토회의 결과 (저장된 양식, 칸 8개)</option>
+      <option value="new" ${S.form==='new'?'selected':''}>새 양식 올리기 (hwp, hwpx)</option></select></div>
+    ${S.form==='new'?`<label class="slot"><span class="grow"><b>양식 파일</b><br><span class="muted">hwp를 올리면 한 번만 hwpx로 바꿔 저장합니다. 이전 회차 내용이 들어 있으면 문체 예시로 씁니다.</span></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="form"></label>`:''}
+    <div class="lbl" style="margin-top:8px">AI가 찾은 칸 <span class="muted">— 칸마다 채우는 방법만 확인하세요</span></div>
+    <table class="t">${S.fields.map((f,i)=>`<tr><td>${esc(f.k)}<br><span class="muted">${esc(f.how)}</span></td>
+      <td style="white-space:nowrap">${[['ai','AI가 채움'],['empty','비워 둠'],['manual','직접 입력']].map(([v,n])=>`<label class="switch" style="margin-right:8px"><input type="radio" name="f${i}" data-field="${i}" value="${v}" ${f.v===v?'checked':''}>${n}</label>`).join('')}</td></tr>`).join('')}</table>
+    <label class="switch" style="margin-top:10px"><input type="checkbox" data-bind="linkPptx" ${S.linkPptx?'checked':''}> 평가과제 pptx(② 초안)로 위치 표기 맞추기 <span class="muted">"자료 3 두 번째 장" → [자료3. 운영 현황(2/2), 7page]</span></label>
+    <div style="margin-top:12px"><button class="btn pri" data-act="makeReport">칸 채우기</button></div>
+  </div>
+  ${S.report?reportHTML():''}`;
+}
+function reportHTML() {
+  const spk = S.speakers, f = i => S.fields[i].v;
+  const by = r => spk.filter(p => p.role === r).map(p => `${p.org?p.org+' ':''}${p.name}`).join(', ') || '(화자 구분을 정하면 채워집니다)';
+  const cell = (i, v) => f(i)==='ai' ? v : f(i)==='empty' ? '<span class="muted">(비워 둠)</span>' : '<span class="muted">(직접 입력)</span>';
+  return `<h2>미리보기</h2><div class="report">
+    <div class="rt">${cell(0,'2031년 ○○시 5급 역량평가<br>집단토론 평가과제 검토 [1차] 회의 결과')}</div>
+    <p><b>□ 회의개요</b></p>
+    <p>○ 건명: ${cell(1,'5급 역량평가 집단토론 평가과제 개발 검토회의')}</p>
+    <p>○ 일시: ${cell(1,'31.03.04(화), 10:00~11:00')}</p>
+    <p>○ 참석인원: ${cell(2,`총 ${spk.length}명<br>&nbsp;&nbsp;- 외부 검토위원: ${esc(by('검토위원'))}<br>&nbsp;&nbsp;- 발주처: ${esc(by('발주처'))}<br>&nbsp;&nbsp;- 개발사: ${esc(by('개발사'))}`)}</p>
+    <p style="margin-top:10px"><b>□ 회의내용</b>: 평가과제 구조 및 내용 검토</p>
+    <table class="t"><tr><th>검토위원 의견</th><th>발주처 의견</th><th>개선 및 반영 방향</th></tr>
+    ${REPORT_ROWS.map(r=>`<tr><td colspan="3" class="loc">${cell(3,esc(r.loc))} <span class="src" data-act="jump" data-v="${r.src}">근거 ▶ ${S.lines[r.src].t}</span></td></tr>
+      <tr><td>${cell(4,esc(r.op))}</td><td class="empty">${cell(5,'')}</td><td>${cell(6,esc(r.plan))}</td></tr>`).join('')}</table>
+    <p style="margin-top:10px"><b>□ 향후일정</b></p>
+    <table class="t"><tr><th>연번</th><th>구분</th><th>기법</th><th>내용</th><th>일시</th></tr>
+      <tr><td>1</td><td>5급 역량평가</td><td>집단토론</td><td>2차 과제개발 검토</td><td>${cell(7,'2031.03.18.(화) 오전 10시')}</td></tr></table>
+  </div>
+  <div class="row" style="margin-top:10px"><input type="text" class="grow" id="repAsk" placeholder="고칠 내용 (예: 의견을 위원별로 나눠 줘)"><button class="btn" data-act="repAsk">반영</button>
+    <button class="btn pri" data-act="hwpx">hwpx로 받기</button><button class="btn" data-act="toS4">검토의견 반영으로 넘기기</button></div>`;
+}
+
+/* ---------- ④ 검토의견 반영 ---------- */
+function reqSummary() {
+  return `<div class="card row" style="padding:10px 14px"><span class="grow">검토의견 ${S.reqs.filter(r=>r.on).length}건의 고친 안이 <b>점검 결과</b> 탭에 있습니다. 하나씩 [반영]/[무시]하세요.</span>
+    <button class="btn sm" data-act="s4list">요청 목록 보기</button><button class="btn sm" data-act="reqTable">반영 내역표 받기</button></div>`;
+}
+function v4() {
+  if (S.s4 === 'edit') return editorHTML(4);
+  if (S.draft !== 'ready') return `<div class="narrow"><h1>검토의견 반영</h1><p class="lead">고칠 평가과제가 없습니다. ② 과제 초안을 만들거나 평가과제 pptx를 올리세요.</p>
+    <label class="slot"><span class="grow"><b>평가과제 pptx</b></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="pptx4"></label></div>`;
+  return `<div class="narrow"><h1>검토의견 반영</h1>
+    <p class="lead">${S.report?'③ 보고서 표의 의견 행을 그대로 가져왔습니다.':'③ 보고서가 아직 없어 녹취록에서 뽑은 요청입니다.'} 반영할 항목만 체크하세요.</p>
+    ${S.reqs.map((r,i)=>`<div class="card"><label class="row" style="align-items:flex-start"><input type="checkbox" data-req="${i}" ${r.on?'checked':''} style="margin-top:4px">
+      <span class="grow"><b>${esc(r.loc)}</b> ${r.conflict?'<span class="tag warn">위원 의견 엇갈림</span>':''}<br>
+      <span>${esc(r.op)}</span><br><span class="muted">반영 방향: ${esc(r.plan)}</span><br>
+      <span class="muted" style="font-size:12px">근거 발언 ${TRANSCRIPT0[r.src].t}${r.ref?` · 📎 ${esc(r.ref)}`:''}</span></span></label></div>`).join('')}
+    <button class="btn pri big" data-act="makeFixes">고친 안 만들기 (${S.reqs.filter(r=>r.on).length}건)</button>
+    <p class="muted" style="margin-top:8px">고친 안을 만들 때 참고자료 저장소에서 같은 기법의 다른 과제와 평가자가이드를 찾아 근거로 붙입니다.</p></div>`;
+}
+
+/* ---------- ⑤ 검수 ---------- */
+function v5() {
+  if (S.draft !== 'ready') return `<div class="narrow"><h1>검수</h1><p class="lead">검수할 평가과제를 올리세요. ④ 결과가 있으면 자동으로 선택됩니다.</p>
+    <label class="slot"><span class="grow"><b>평가과제 pptx + 평가자가이드</b></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="pptx5"></label></div>`;
+  return editorHTML(5);
+}
+
+/* ---------- 관리자 ---------- */
+function vAdmin() {
+  const body = { prompts:aPrompts, checks:aChecks, lib:aLib, forms:aForms, settings:aSettings }[S.adminTab]();
+  return `<div class="adm"><div class="menu">${ADMIN.map(([k,n])=>`<button data-act="atab" data-v="${k}" class="${S.adminTab===k?'on':''}">${n}</button>`).join('')}</div><div>${body}</div></div>`;
+}
+function aPrompts() {
+  const p = S.prompts.find(x => x.id === S.editPrompt);
+  return `<h1>지침 관리</h1><p class="lead">기능마다 기존 스킬을 불러오거나, 지침 프롬프트를 직접 씁니다. 저장하면 모든 이용자에게 바로 적용됩니다.</p>
+  <div class="row" style="margin-bottom:12px">${S.prompts.map(x=>`<button class="chip ${x.id===S.editPrompt?'on':''}" data-act="pPick" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>
+  <div class="card">
+    <div class="seg" style="margin-bottom:12px"><button data-act="pMode" data-v="skill" class="${p.mode==='skill'?'on':''}">스킬 불러오기</button><button data-act="pMode" data-v="prompt" class="${p.mode==='prompt'?'on':''}">지침 프롬프트 직접 쓰기</button></div>
+    ${p.mode==='skill' ? `<div class="lbl">불러온 스킬: <span class="tag blue">${esc(p.skill||'없음')}</span></div>
+      <table class="t" style="margin:8px 0"><tr><th>파일</th><th>포털에서 쓰는 방법</th></tr>${(p.files||[]).map(f=>`<tr><td>${esc(f)}</td><td>${f==='SKILL.md'?'지침 프롬프트로 사용':f.startsWith('references')?'참고자료 저장소에 넣고 필요할 때 찾아 씀':'서버의 격리된 실행 환경에서 실행'}</td></tr>`).join('')}</table>
+      <label class="slot"><span class="grow">다른 스킬 올리기 <span class="muted">(스킬 폴더 zip)</span></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="skill" accept=".zip"></label>`
+      : `<textarea id="pText" style="min-height:180px">${esc(p.text)}</textarea>`}
+    <div class="row" style="margin-top:10px"><input type="text" id="pNote" class="grow" placeholder="바꾼 이유 (버전 기록에 남음)"><button class="btn" data-act="pTest">예시 파일로 시험 실행</button><button class="btn pri" data-act="pSave">저장</button></div>
+  </div>
+  <h2>버전 기록</h2><table class="t"><tr><th>버전</th><th>날짜</th><th>고친 사람</th><th>바꾼 이유</th><th></th></tr>
+  ${p.ver.map((v,i)=>`<tr><td>${v[0]}</td><td>${v[1]}</td><td>${v[2]}</td><td>${esc(v[3])}</td><td>${i?`<button class="btn sm" data-act="pRestore">되돌리기</button>`:'<span class="tag blue">사용 중</span>'}</td></tr>`).join('')}</table>`;
+}
+function aChecks() {
+  return `<h1>점검 항목 관리</h1><p class="lead">여기 등록한 항목이 이용자 편집 화면의 점검 버튼이 됩니다. 이용자는 버튼만 누르고, 추가 점검은 채팅으로 합니다.</p>
+  ${S.checks.map((c,i)=>{ const ed = S.editCheck===c.id; return `<div class="card" style="border-left:4px solid ${c.color}">
+    <div class="row"><b class="grow">${esc(c.name)} ${c.on?'':'<span class="tag">숨김</span>'}</b>
+      <span class="muted" style="font-size:12px">보이는 단계: ${c.where.map(w=>'①②③④⑤'[w-1]).join(' ')} · 계산 코드 ${c.calc?'사용':'안 씀'}</span>
+      <button class="btn sm" data-act="cUp" data-v="${i}" ${i?'':'disabled'}>▲</button><button class="btn sm" data-act="cEdit" data-v="${c.id}">${ed?'닫기':'고치기'}</button></div>
+    ${ed?`<div style="margin-top:10px">
+      <div class="field"><label>이름</label><input type="text" data-c="${c.id}" data-k="name" value="${esc(c.name)}"></div>
+      <div class="field"><label>지침 프롬프트 <small>무엇을 어떤 기준으로 찾을지</small></label><textarea data-c="${c.id}" data-k="prompt">${esc(c.prompt)}</textarea></div>
+      <div class="row" style="gap:16px">
+        <label class="switch"><input type="checkbox" data-c="${c.id}" data-k="calc" ${c.calc?'checked':''}> 계산 코드 사용</label>
+        <label class="switch">표시 색 <input type="color" data-c="${c.id}" data-k="color" value="${c.color}"></label>
+        <span class="switch">보이는 단계 ${[2,4,5].map(w=>`<label class="switch"><input type="checkbox" data-c="${c.id}" data-k="where" value="${w}" ${c.where.includes(w)?'checked':''}>${'①②③④⑤'[w-1]}</label>`).join(' ')}</span>
+        <label class="switch"><input type="checkbox" data-c="${c.id}" data-k="on" ${c.on?'checked':''}> 사용</label>
+        <span class="grow"></span><button class="btn sm" data-act="cDel" data-v="${c.id}">지우기</button></div></div>`:`<div class="muted" style="font-size:13px;margin-top:4px">${esc(c.prompt)}</div>`}
+  </div>`; }).join('')}
+  <button class="btn" data-act="cAdd">+ 점검 항목 추가</button>`;
+}
+function aLib() {
+  return `<h1>참고자료 저장소</h1><p class="lead">주제 탐색, 과제 초안, 검토의견 반영에서 함께 찾아 씁니다. 문서마다 발주처·연도·기법·직급을 붙이면 검색할 때 거를 수 있습니다.</p>
+  <label class="slot"><span class="grow"><b>자료 올리기</b> <span class="muted">pptx, pdf, docx, hwp, csv</span></span><span class="btn sm">파일 올리기</span><input type="file" data-slot="lib" multiple></label>
+  <table class="t"><tr><th>종류</th><th>발주처</th><th>연도</th><th>기법</th><th>직급</th></tr>${LIB.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table>`;
+}
+function aForms() {
+  return `<h1>양식 관리</h1><p class="lead">이용자가 확인한 양식과 칸 구성이 용역별로 저장됩니다. 같은 용역의 다음 회차 회의에서 다시 씁니다.</p>
+  <table class="t"><tr><th>양식 이름</th><th>파일</th><th>칸</th><th>최근 사용</th><th></th></tr>
+  <tr><td>○○시 5급 역량평가 · 과제 검토회의 결과</td><td>hwpx (hwp에서 바꿈)</td><td>8</td><td>2031-03-04</td><td><button class="btn sm" data-act="soon">칸 구성 보기</button></td></tr>
+  <tr><td>△△도 4급 역량평가 · 검토위원회 회의록</td><td>hwpx</td><td>6</td><td>2030-11-20</td><td><button class="btn sm" data-act="soon">칸 구성 보기</button></td></tr></table>`;
+}
+function aSettings() {
+  return `<h1>설정</h1>
+  <div class="card"><label class="switch"><input type="checkbox" data-bind="web" ${S.web?'checked':''}> <b>웹 검색 사용</b></label>
+    <p class="muted" style="margin-top:4px">끄면 주제 탐색의 시의성 확인과 의견 반영의 참고 조사를 사내 참고자료로만 합니다.</p></div>
+  <div class="card"><div class="lbl">이용자 권한</div><table class="t"><tr><th>이름</th><th>권한</th></tr>
+    <tr><td>김○○</td><td>관리자</td></tr><tr><td>이○○</td><td>이용자</td></tr><tr><td>박○○</td><td>이용자</td></tr></table></div>`;
+}
+
+/* =====================================================================
+   4. 동작
+   ===================================================================== */
+function addHistory(block, before, after, who, why) {
+  S.history.push({ v:S.history.length+1, block, before, after, who, why });
+  // 작업 원칙 7: 바뀐 글이 다른 블록(가이드 포함)에도 있으면 "함께 확인 필요"
+  const gone = before.split(/[\s,.:()]+/).filter(w => w.length>1 && /\d/.test(w) && !after.includes(w));
+  S.blocks.forEach(x => { if (x.id !== block && gone.some(w => x.text.includes(w)))
+    S.impact[x.id] = `${B(block).title}에서 "${gone.join(', ')}"을(를) 고쳤습니다. 이 블록에도 같은 내용이 있습니다.`; });
+}
+function setText(id, text, who, why) { const b = B(id); const before = b.text; if (before === text) return; b.text = text; addHistory(id, before, text, who, why); }
+let issueSeq = 1;
+function runCheck(id, quiet) {
+  const c = chk(id);
+  const found = FINDINGS.filter(f => f.check === id && B(f.block).text.includes(f.find) && !S.issues.some(i => i.check===id && i.find===f.find && i.status==='open'));
+  found.forEach(f => S.issues.push({ ...f, id:issueSeq++, status:'open' }));
+  const total = S.issues.filter(i => i.check===id && i.status==='open').length;
+  if (!quiet) { S.chat.push({ t:`${c.name} 점검을 마쳤습니다. 결과 ${total}건${FINDINGS.some(f=>f.check===id)?'':' (새로 등록한 항목은 시안에 예시 결과가 없습니다)'}.` }); S.panel = 'issues'; }
+  return total;
+}
+function apply(iid) {
+  const i = S.issues.find(x => x.id === iid); const ta = document.querySelector(`[data-fix="${iid}"]`); if (ta) i.fix = ta.value;
+  const b = B(i.block);
+  if (!b.text.includes(i.find)) { toast('원문이 이미 바뀌어 반영할 수 없습니다.'); return; }
+  setText(i.block, b.text.replace(i.find, i.fix), i.check==='chat'?'이용자':'AI', `${chk(i.check).name}: “${i.find}” → “${i.fix}”`);
+  i.status = 'applied'; S.cur = i.block; render(); toast('반영했습니다. 버전 기록에 남았습니다.');
+}
+function ask(text) {
+  S.chat.push({ me:true, t:text });
+  const hit = S.checks.filter(c => c.on && text.includes(c.name.slice(0,3)));
+  if (hit.length) hit.forEach(c => runCheck(c.id));
+  else if (S.scope && S.scope.type === 'sel') {
+    // API 연결 지점: 선택한 글 + 요청을 모델에 보내 고친 안을 받는다
+    S.issues.push({ id:issueSeq++, check:'chat', block:S.scope.block, find:S.scope.text, fix:S.scope.text, why:`요청: ${text}\n(시안에서는 AI 수정안 대신 원문이 들어 있습니다. 직접 고쳐 [반영]해 보세요.)`, status:'open' });
+    S.chat.push({ t:'선택한 부분의 고친 안을 점검 결과 탭에 올렸습니다.' }); S.panel = 'issues';
+  } else S.chat.push({ t:`"${S.scope?S.scope.label:B(S.cur).title}" 범위로 요청을 받았습니다. 실제 연결 시 AI가 고친 안을 점검 결과 탭에 올립니다.` });
+  render();
+}
+const ACT = {
+  mode: el => { S.mode = el.dataset.v; render(); },
+  stage: el => { S.stage = +el.dataset.v; S.scope = null; S.diff = false; render(); },
+  s1method: el => { S.s1.method = el.dataset.v; render(); },
+  findTopics: () => { S.s1.cands = 'loading'; $('cands').innerHTML = '<div class="loading">기출 DB와 주제풀을 검색하는 중…</div>'; setTimeout(() => { S.s1.cands = true; render(); }, 600); },
+  reroll: () => { const q = $('s1ask').value.trim(); S.s1.shift++; render(); if (q) toast(`조건 반영: ${q}`); },
+  pickTopic: el => { S.s1.topic = TOPICS[+el.dataset.v]; render(); },
+  s1back: () => { S.s1.topic = null; render(); },
+  toDraft: () => { S.slots.story = `스토리맵_${S.s1.topic.title}.md (① 주제 탐색에서 넘어옴)`; S.stage = 2; render(); },
+  fillSlots: () => { S.slots.story = S.slots.story || '스토리맵_공영자전거.md'; S.slots.task = '2029_집단토론_평가과제.pptx'; S.slots.guide = '2029_집단토론_평가자가이드.pptx'; render(); },
+  makeDraft: () => { S.draft = 'loading'; render(); setTimeout(() => { S.draft = 'ready'; render(); }, 700); },
+  pick: el => { S.cur = el.dataset.v; S.scope = null; S.mtab = 'doc'; render(); },
+  panel: el => { S.panel = el.dataset.v; render(); },
+  mtab: el => { S.mtab = el.dataset.v; render(); },
+  diff: () => { S.diff = !S.diff; render(); },
+  runCheck: el => { runCheck(el.dataset.v); render(); },
+  runAll: () => { const n = S.checks.filter(c => c.on && c.where.includes(5)).reduce((s,c) => s + runCheck(c.id, true), 0); S.chat.push({ t:`전체 점검을 마쳤습니다. 결과 ${n}건.` }); S.panel='issues'; render(); },
+  apply: el => apply(+el.dataset.v),
+  ignore: el => { S.issues.find(x => x.id === +el.dataset.v).status = 'ignored'; render(); },
+  focusIssue: el => { const i = S.issues.find(x => x.id === +el.dataset.v); S.cur = i.block; S.activeIssue = i.id; S.panel = 'issues'; S.diff = false; render();
+    const c = $('iss-'+i.id); c && c.scrollIntoView({ block:'nearest' }); },
+  impactOk: () => { delete S.impact[S.cur]; render(); },
+  clearScope: () => { S.scope = null; render(); },
+  viewVer: el => { S.cur = S.history[+el.dataset.v-1].block; S.diff = true; render(); },
+  restore: el => { const h = S.history[+el.dataset.v-1]; setText(h.block, h.before, '이용자', `v${h.v} 수정 전으로 되돌림`); S.cur = h.block; render(); toast('되돌렸습니다.'); },
+  export: () => toast('시안에서는 파일을 만들지 않습니다. 실제로는 원본 pptx의 글자만 바꿔 내보냅니다.'),
+  // ③
+  demoAudio: () => startStt('검토회의_1차_0304.m4a'),
+  editSpk: el => { S.editSpk = +el.dataset.v; render(); },
+  cancelSpk: () => { S.editSpk = null; render(); },
+  saveSpk: () => { const p = S.speakers[S.editSpk]; p.name = $('spName').value.trim() || `Speaker ${S.editSpk+1}`; p.org = $('spOrg').value.trim(); p.role = $('spRole').value; S.editSpk = null; render(); },
+  play: el => { S.playing = +el.dataset.v; render(); },
+  stop: () => { S.playing = null; render(); },
+  jump: el => { S.playing = +el.dataset.v; render(); $('ln-'+el.dataset.v).scrollIntoView({ block:'center' }); },
+  makeReport: () => { S.report = true; render(); },
+  repAsk: () => { const q = $('repAsk').value.trim(); if (q) toast(`요청을 받았습니다: ${q}`); },
+  hwpx: () => toast('시안에서는 파일을 만들지 않습니다. 실제로는 저장된 양식(hwpx)의 칸에 채워 내보냅니다.'),
+  toS4: () => { S.stage = 4; render(); },
+  // ④
+  makeFixes: () => {
+    S.reqs.filter(r => r.on).forEach(r => {
+      const f = FINDINGS.find(x => x.check === r.req.check && B(x.block).text.includes(x.find)); if (!f) return;
+      S.issues.push({ ...f, id:issueSeq++, check:'review', why:`${r.loc} ${r.op}\n반영 방향: ${r.plan}`, ref:r.ref || '참고: 같은 기법의 기출 과제 2건을 찾아 비교함', status:'open' });
+    });
+    S.s4 = 'edit'; S.panel = 'issues'; S.cur = 'd3'; render();
+  },
+  s4list: () => { S.s4 = 'list'; render(); },
+  reqTable: () => toast('시안에서는 파일을 만들지 않습니다. 실제로는 "요청 → 반영 여부 → 고친 위치" 표를 엑셀로 내보냅니다.'),
+  // 관리자
+  atab: el => { S.adminTab = el.dataset.v; render(); },
+  pPick: el => { S.editPrompt = +el.dataset.v; render(); },
+  pMode: el => { S.prompts.find(x => x.id === S.editPrompt).mode = el.dataset.v; render(); },
+  pTest: () => toast('예시 파일로 시험 실행을 마쳤습니다. (시안)'),
+  pSave: () => { const p = S.prompts.find(x => x.id === S.editPrompt); const t = $('pText'); if (t) p.text = t.value;
+    const n = +p.ver[0][0].slice(1) + 1; p.ver.unshift([`v${n}`, new Date().toISOString().slice(0,10), '관리자', $('pNote').value.trim() || '내용 수정']); render(); toast('저장했습니다. 모든 이용자에게 바로 적용됩니다.'); },
+  pRestore: () => toast('선택한 버전으로 되돌렸습니다. (시안)'),
+  cEdit: el => { S.editCheck = S.editCheck === el.dataset.v ? null : el.dataset.v; render(); },
+  cUp: el => { const i = +el.dataset.v; [S.checks[i-1], S.checks[i]] = [S.checks[i], S.checks[i-1]]; render(); },
+  cDel: el => { S.checks = S.checks.filter(c => c.id !== el.dataset.v); render(); },
+  cAdd: () => { const id = 'n' + Date.now(); S.checks.push({ id, name:'새 점검 항목', color:'#475467', calc:false, where:[2,4,5], on:true, prompt:'' }); S.editCheck = id; render(); },
+  soon: () => toast('시안에서는 목록만 보여 줍니다.'),
+};
+function startStt(name) {
+  S.audio = name; S.stt = 'running'; render();
+  setTimeout(() => { S.stt = 'done'; S.speakers = [0,1,2,3].map(i => ({ name:`Speaker ${i+1}`, org:'', role:'', c:SPK_COLORS[i] })); S.lines = clone(TRANSCRIPT0); render(); }, 800);
+}
+
+/* 이벤트 연결 */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el || el.type === 'checkbox' && el.dataset.act !== 'diff') return;
+  if (el.tagName === 'A') e.preventDefault();
+  if (ACT[el.dataset.act]) ACT[el.dataset.act](el);
+});
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.dataset.actSubmit === 'ask') { const v = $('askIn').value.trim(); if (v) ask(v); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.bind) { const path = t.dataset.bind.split('.'); const o = path.length > 1 ? S[path[0]] : S; o[path[path.length-1]] = t.type === 'checkbox' ? t.checked : t.value; render(); return; }
+  if (t.dataset.slot) {
+    const name = t.files[0] ? t.files[0].name : ''; if (!name) return;
+    if (t.dataset.slot === 'audio') return startStt(name);
+    if (['pptx4','pptx5'].includes(t.dataset.slot)) { S.draft = 'ready'; render(); return; }
+    if (t.dataset.slot in S.slots) { S.slots[t.dataset.slot] = name; render(); return; }
+    toast(`${name}을(를) 올렸습니다. (시안)`); return;
+  }
+  if (t.dataset.field) { S.fields[+t.dataset.field].v = t.value; return; }
+  if (t.dataset.line) { S.lines[+t.dataset.line].s = +t.value; render(); return; }
+  if (t.dataset.req) { S.reqs[+t.dataset.req].on = t.checked; render(); return; }
+  if (t.dataset.c) { const c = S.checks.find(x => x.id === t.dataset.c), k = t.dataset.k;
+    if (k === 'where') c.where = t.checked ? [...c.where, +t.value].sort() : c.where.filter(w => w !== +t.value);
+    else c[k] = t.type === 'checkbox' ? t.checked : t.value;
+    render(); }
+});
+document.addEventListener('input', e => { const t = e.target; if (t.dataset.bind && t.type === 'text' || t.tagName === 'TEXTAREA' && t.dataset.bind) { const p = t.dataset.bind.split('.'); S[p[0]][p[1]] = t.value; } });
+document.addEventListener('focusout', e => { const t = e.target; if (t.dataset && t.dataset.txt) S.lines[+t.dataset.txt].text = t.innerText; });
+
+/* 드래그 선택 → 작은 메뉴 */
+function hidePop() { $('pop').classList.add('hidden'); }
+document.addEventListener('mouseup', e => {
+  if (e.target.closest('#pop')) return;
+  const body = $('docbody'); const sel = window.getSelection(); const txt = sel.toString().trim();
+  if (!body || !txt || txt.length < 2 || !body.contains(sel.anchorNode) || S.diff) { if (!e.target.closest('#pop')) hidePop(); return; }
+  const r = sel.getRangeAt(0).getBoundingClientRect(), pop = $('pop');
+  const blk = S.cur;
+  pop.innerHTML = `<button class="btn sm pri" id="popAi">AI에게 고쳐 달라고 하기</button><button class="btn sm" id="popMe">직접 고치기</button>`;
+  pop.style.left = Math.max(8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - 330)) + 'px';
+  pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
+  pop.classList.remove('hidden');
+  $('popAi').onclick = () => { S.scope = { type:'sel', block:blk, text:txt, label:`선택한 글 “${txt.slice(0,20)}${txt.length>20?'…':''}”` }; S.panel = 'chat'; S.mtab = 'side'; render(); $('askIn').focus(); };
+  $('popMe').onclick = () => {
+    pop.innerHTML = `<textarea id="popTa" style="width:300px">${esc(txt)}</textarea><button class="btn sm pri" id="popSave">저장</button><button class="btn sm" id="popX">취소</button>`;
+    $('popTa').focus();
+    $('popX').onclick = hidePop;
+    $('popSave').onclick = () => { const b = B(blk); if (!b.text.includes(txt)) { toast('여러 줄에 걸친 선택은 한 줄씩 고쳐 주세요.'); return; }
+      setText(blk, b.text.replace(txt, $('popTa').value), '이용자', `직접 고침: “${txt.slice(0,30)}”`); hidePop(); render(); toast('고쳤습니다. 버전 기록에 남았습니다.'); };
+  };
+});
+render();
 </script>
 </body>
 </html>
