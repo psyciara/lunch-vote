@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
 <title>과제 개발 포털</title>
 <!--
-  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.7)
+  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.8)
   - 화면 원칙은 명세 2-1, 화면 용어는 명세 2-2를 따른다.
   - AI 응답, 음성 인식, 파일 처리는 이 파일 안의 예시 데이터로 흉내 낸다.
   - 예시 과제(한빛시 공영자전거)는 시안용으로 지어낸 내용이다. 실제 과제·양식의 내용은 넣지 않았다.
@@ -15,7 +15,7 @@
 -->
 <style>
   :root {
-    --bg:#f5f6f8; --card:#fff; --text:#101828; --sub:#475467; --faint:#667085; --line:#e4e7ec; --soft:#f2f4f7;
+    --bg:#f5f6f8; --card:#fff; --text:#101828; --sub:#475467; --faint:#5f6b7c; --line:#e4e7ec; --soft:#f2f4f7;
     --accent:#1d4ed8; --accent-hover:#1e40af; --accent-soft:#eef2ff; --on-accent:#fff;
     --ok:#067647; --ok-soft:#dcfae6; --add:#dcfae6; --add-t:#067647; --del:#fee4e2; --del-t:#b42318;
     --warn:#fff4e5; --warn-t:#93370d; --danger:#b42318;
@@ -61,7 +61,7 @@
   .stepper button:hover { border-color:var(--accent); }
   .stepper .num { width:26px; height:26px; border-radius:50%; background:var(--soft); display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
   .stepper .name { font-weight:600; font-size:14px; }
-  .stepper .st { font-size:12px; color:var(--faint); }
+  .stepper .st { font-size:13px; color:var(--faint); }
   .stepper .on { border-color:var(--accent); background:var(--accent-soft); }
   .stepper .on .num { background:var(--accent); color:var(--on-accent); }
   .stepper .done .num { background:var(--ok-soft); color:var(--ok); }
@@ -98,7 +98,8 @@
   .big { width:100%; min-height:46px; font-size:16px; }
   .chip { min-height:38px; padding:6px 14px; border:1px solid var(--line); background:var(--card); border-radius:999px; }
   .chip[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600; }
-  .tag { display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:1px 8px; border-radius:6px; background:var(--soft); color:var(--sub); }
+  .chip[aria-pressed="true"] .muted { color:inherit; opacity:.9; }
+  .tag { display:inline-flex; align-items:center; gap:4px; font-size:13px; padding:1px 8px; border-radius:6px; background:var(--soft); color:var(--sub); }
   .tag.blue { background:var(--accent-soft); color:var(--accent); }
   .tag.warn { background:var(--warn); color:var(--warn-t); }
   .tag.ok { background:var(--ok-soft); color:var(--ok); }
@@ -114,7 +115,7 @@
   table.t th { background:var(--soft); font-weight:600; }
   .tablewrap { overflow-x:auto; }
   .note { display:flex; gap:10px; align-items:flex-start; background:var(--warn); color:var(--warn-t); border-radius:var(--radius); padding:12px 14px; margin:10px 0; font-size:14px; }
-  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--text); color:var(--bg);
+  .toast { position:fixed; left:24px; bottom:24px; background:var(--text); color:var(--bg);
            padding:10px 16px; border-radius:10px; font-size:14px; z-index:60; max-width:90vw; display:flex; gap:8px; align-items:center; }
   .hidden { display:none !important; }
 
@@ -136,7 +137,7 @@
   .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
   .flow .card { margin:0; display:flex; flex-direction:column; gap:6px; }
   .flow .n { width:28px; height:28px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight:700; display:flex; align-items:center; justify-content:center; }
-  .flow dt { font-size:12px; color:var(--faint); margin-top:4px; } .flow dd { font-size:14px; }
+  .flow dt { font-size:13px; color:var(--faint); margin-top:4px; } .flow dd { font-size:14px; }
   .flow .btn { margin-top:auto; }
   @media (max-width:1100px) { .flow { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   @media (max-width:560px) { .flow { grid-template-columns:1fr; } }
@@ -160,14 +161,14 @@
   .tree { padding:12px 10px; font-size:14px; display:flex; flex-direction:column; }
   .tree .head { font-weight:700; padding:0 8px 6px; display:flex; gap:6px; align-items:center; }
   .tree .top { font-size:13px; font-weight:700; margin:12px 8px 2px; color:var(--text); }
-  .tree .grp { font-size:12px; color:var(--faint); font-weight:600; margin:10px 8px 2px; }
+  .tree .grp { font-size:13px; color:var(--faint); font-weight:600; margin:10px 8px 2px; }
   .tree button.it { display:flex; gap:6px; align-items:center; width:100%; text-align:left; border:none; background:none; padding:7px 8px; border-radius:6px; min-height:36px; }
   .tree button.it:hover { background:var(--soft); }
   .tree button.it[aria-current="true"] { background:var(--accent-soft); color:var(--accent); font-weight:600; }
-  .tree .pg { color:var(--faint); font-size:12px; margin-left:auto; white-space:nowrap; }
+  .tree .pg { color:var(--faint); font-size:13px; margin-left:auto; white-space:nowrap; }
   .legend { margin-top:auto; border-top:1px solid var(--line); padding:10px 8px 0; font-size:12px; color:var(--faint); display:grid; gap:4px; }
   .dot { width:8px; height:8px; border-radius:50%; background:var(--ok); flex:none; display:inline-block; }
-  .cnt { font-size:12px; background:var(--warn); color:var(--warn-t); border-radius:6px; padding:0 6px; }
+  .cnt { font-size:13px; background:var(--warn); color:var(--warn-t); border-radius:6px; padding:0 6px; }
   .impc { color:var(--warn-t); display:inline-flex; }
   .docbar { padding:10px 12px; border-bottom:1px solid var(--line); display:grid; gap:8px; }
   .docbar .lbl { margin:0; font-size:13px; color:var(--faint); font-weight:600; }
@@ -198,7 +199,7 @@
   .msg.ai { background:var(--soft); margin-right:28px; }
   .ex { display:block; width:100%; text-align:left; border:1px solid var(--line); background:var(--card); border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:14px; }
   .ex:hover { border-color:var(--accent); }
-  .issue { border:1px solid var(--line); border-left:4px solid var(--c); border-radius:8px; padding:12px; margin-bottom:10px; font-size:14px; }
+  .issue { border:1px solid var(--line); border-radius:8px; padding:0; margin-bottom:10px; font-size:14px; }
   .issue.done { opacity:.6; }
   .issue .h { display:flex; justify-content:space-between; gap:6px; margin-bottom:4px; }
   .issue .loc { color:var(--faint); font-size:13px; }
@@ -247,7 +248,7 @@
   .player .btn { color:var(--text); }
   .report { background:var(--card); border:1px solid var(--line); padding:24px; border-radius:4px; font-size:14px; }
   .report .rt { text-align:center; font-weight:700; font-size:17px; margin-bottom:14px; }
-  .report .src { font-size:12px; color:var(--accent); background:none; border:none; white-space:nowrap; text-decoration:underline; }
+  .report .src { font-size:13px; color:var(--accent); background:none; border:none; white-space:nowrap; text-decoration:underline; }
   .report td.loc { background:var(--soft); font-weight:600; }
 
   /* AI 수정 요청 상자 */
@@ -279,13 +280,31 @@
   .pickhead input { margin-top:4px; }
   .pickhead .ttl { font-size:16px; }
   .ailink { margin:10px 0; }
+  .adm > * { min-width:0; }
+  ::selection { background:var(--accent-soft); color:var(--text); }
+  input, textarea, [contenteditable] { caret-color:var(--accent); }
+  html { scrollbar-color:var(--line) transparent; }
+  @media (max-width:640px) { .toast { left:16px; right:16px; } }
+  .toast .btn { min-height:30px; padding:2px 10px; color:var(--text); }
+  .note.info { background:var(--accent-soft); color:var(--text); }
+  .demo { display:inline-flex; gap:4px; align-items:center; border:1px dashed var(--line); border-radius:999px; padding:2px 10px; font-size:13px; color:var(--sub); background:none; min-height:30px; }
+  .demo::before { content:'시안 체험'; font-weight:600; color:var(--faint); margin-right:4px; }
+  .issue.open { border-color:var(--accent); }
+  .issue .sumbtn { display:flex; gap:10px; align-items:flex-start; width:100%; text-align:left; background:none; border:none; padding:10px 12px; font-size:14px; }
+  .issue .sw { width:10px; height:10px; border-radius:3px; background:var(--c); margin-top:6px; flex:none; }
+  .issue .one { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--faint); font-size:13px; }
+  .issue .body { padding:0 12px 12px; }
+  .cmp { background:var(--soft); border-radius:6px; padding:8px 10px; margin:8px 0; white-space:pre-wrap; }
+  .rv { border:1px solid var(--accent); background:var(--accent-soft); border-radius:var(--radius); padding:12px 14px; margin:0 0 12px; display:grid; gap:8px; }
+  .rv .sw { width:10px; height:10px; border-radius:3px; background:var(--c); display:inline-block; }
+  .who i { width:10px; height:10px; border-radius:50%; background:var(--sc); display:inline-block; margin-right:6px; }
   /* 스킬 파일 보기 */
   .skillv { display:grid; grid-template-columns:240px minmax(0,1fr); gap:14px; align-items:start; }
   @media (max-width:820px) { .skillv { grid-template-columns:1fr; } }
   .files button { display:flex; gap:6px; align-items:center; width:100%; text-align:left; border:none; background:none; padding:6px 8px; border-radius:6px; font-size:13px; min-height:34px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
   .files button:hover { background:var(--soft); }
   .files button[aria-current="true"] { background:var(--accent-soft); color:var(--accent); font-weight:600; }
-  .files .fd { font-size:12px; color:var(--faint); margin:10px 8px 2px; font-weight:600; }
+  .files .fd { font-size:13px; color:var(--faint); margin:10px 8px 2px; font-weight:600; }
   textarea.code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; line-height:1.55; min-height:360px; }
   textarea[readonly] { background:var(--soft); }
   .cols2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; } @media (max-width:640px) { .cols2 { grid-template-columns:1fr; } }
@@ -294,7 +313,7 @@
   .adm { display:grid; grid-template-columns:210px minmax(0,1fr); gap:20px; }
   .adm .menu button { display:flex; gap:8px; align-items:center; width:100%; text-align:left; border:none; background:none; padding:10px 12px; border-radius:8px; min-height:42px; }
   .adm .menu button[aria-current="page"] { background:var(--accent-soft); color:var(--accent); font-weight:600; }
-  @media (max-width:820px) { .adm { grid-template-columns:1fr; } .adm .menu { display:flex; overflow-x:auto; gap:4px; } .adm .menu button { white-space:nowrap; width:auto; } }
+  @media (max-width:820px) { .adm { grid-template-columns:minmax(0,1fr); } .adm .menu { display:flex; overflow-x:auto; gap:4px; } .adm .menu button { white-space:nowrap; width:auto; } }
   .switch { display:inline-flex; align-items:center; gap:6px; }
 </style>
 </head>
@@ -311,6 +330,7 @@
 <main id="main" tabindex="-1"></main>
 <div id="pop" class="pop hidden" role="dialog" aria-label="선택한 글 고치기"></div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+<div id="live" class="sr" aria-live="polite"></div>
 <script>
 /* =====================================================================
    1. 예시 데이터 (시안용으로 지어낸 내용)
@@ -481,6 +501,8 @@ const CP_RESULTS = {
   A2: '신규 풀이 설계\n- 최적안: 정비 인력 확충 + 대여소 재배치 + 정기권 가격 조정\n- 핵심 판단 지점 1~3: 참조 과제와 같은 구조로 유지\n- 난이도: 중상',
   B1: '참조 과제 분석과 배정\n- 공통 자료 3개, 역할별 자료 2개\n- 자료 3에 예산 표, 자료 4·5에 과별 제안서를 배정\n- 방향·쪽 크기: 세로 A4 (참조 과제와 같음)',
 };
+// 확인 단계의 이용자용 이름 (명세 2-2. 단계 기호는 관리자 화면에만)
+const CP_PLAIN = { A1:'예전 과제 풀이 다시 보기', A2:'새 과제 풀이 짜기', B1:'자료 나누기' };
 const LESSON_ADD = '\n- 자료끼리 같은 숫자(대여소 수 등)가 다르면 표를 기준으로 맞춘다.\n- 역할별 제안서 끝 문장에 "가장 바람직한" 같은 정답 표현을 쓰지 않는다. 입장은 드러내되 결론은 열어 둔다.';
 
 /* =====================================================================
@@ -681,7 +703,8 @@ function syncReqs() {   // ③ 보고서 문장을 고치면 ④ 수정 요청 �
 }
 function parseCheckpoints() {   // 명세 3-6: SKILL.md의 ★정지 표시를 확인 단계로
   return S.files[2]['SKILL.md'].split('\n').filter(l => /^#{2,3} .*★정지/.test(l))
-    .map(l => { const t = l.replace(/^#+\s*/, '').replace(/\s*★정지.*/, ''); const code = t.split('.')[0]; return { code, title:t, text:CP_RESULTS[code] || `${t} 결과 (시안 예시)` }; });
+    .map(l => { const t = l.replace(/^#+\s*/, '').replace(/\s*★정지.*/, ''); const code = t.split('.')[0];
+      return { code, title:t, name:CP_PLAIN[code] || t.replace(/^[A-Z]\d+\.\s*/, ''), text:CP_RESULTS[code] || `${t} 결과 (시안 예시)` }; });
 }
 
 /* =====================================================================
@@ -702,7 +725,7 @@ const S = {
   form:'saved', fields:clone(FORM_FIELDS), linkPptx:true, report:false,
   reqs:REPORT_ROWS.filter(r => r.req).map(r => ({ ...r, on:true })), s4:'list',
   editCheck:null, editPrompt:1, confirmDel:null, loading:null,
-  ai:{}, aiOpen:{}, openDet:{}, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
+  ai:{}, aiOpen:{}, openDet:{}, review:null, openIssue:null, simFail:false, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
   proposals:[], lessonSent:false, cps:null, cpIdx:0, storyText:'', rows:clone(REPORT_ROWS),
 };
 const resetBlocks = () => { S.blocks = clone(BLOCKS0); S.base = {}; S.blocks.forEach(b => S.base[b.id] = b.text); };
@@ -711,7 +734,9 @@ const $ = id => document.getElementById(id);
 const B = id => S.blocks.find(b => b.id === id);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const chk = id => S.checks.find(c => c.id === id) || (id === 'review' ? REVIEW_CHECK : id === 'whole' ? WHOLE_CHECK : CHAT_CHECK);
-function toast(m) { const t = $('toast'); t.innerHTML = ic('check') + esc(m); t.classList.remove('hidden'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.add('hidden'), 2600); }
+function toast(m, undo) { const t = $('toast'); toast.undo = undo || null;
+  t.innerHTML = ic('check') + `<span>${esc(m)}</span>` + (undo ? ` <button class="btn sm" data-act="toastUndo">${ic('history')} 되돌리기</button>` : '');
+  t.classList.remove('hidden'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.add('hidden'), undo ? 7000 : 2600); }
 
 // 선 아이콘 (그림 문자 대신 사용, 명세 2-1의 8번)
 const ICONS = {
@@ -740,11 +765,11 @@ const STEPS = [
   { name:'검토회의 보고서', in:'회의 녹음 파일, 보고서 양식(hwpx)', out:'검토회의 결과보고서(hwpx)',
     todo:['회의 녹음 파일을 올리면 글로 바꾸고 화자를 나눕니다.','화자 이름을 눌러 이름·소속·구분(검토위원/발주처/개발사)을 적습니다.','양식의 칸을 확인하고 미리보기를 본 뒤 hwpx로 받습니다. 고칠 점은 화면마다 있는 <b>AI에게 고쳐 달라고 하기</b>에 적습니다.'] },
   { name:'검토의견 반영', in:'평가과제 pptx, 검토회의 보고서', out:'의견을 반영한 평가과제',
-    todo:['검토회의 보고서의 의견이 수정 요청 목록으로 들어옵니다.','반영할 요청만 체크하고 <b>[고친 안 만들기]</b>를 누릅니다.','오른쪽 점검 결과에서 고친 안을 하나씩 <b>[반영]</b> 또는 <b>[무시]</b>합니다.'] },
+    todo:['검토회의 보고서의 의견이 수정 요청 목록으로 들어옵니다.','반영할 요청만 체크하고 <b>[고친 안 만들기]</b>를 누릅니다.','검토 모드에서 고친 안을 하나씩 <b>[반영]</b>하거나 <b>[넘기기]</b>합니다.'] },
   { name:'검수', in:'평가과제 pptx, 평가자가이드', out:'검수 결과표, 고친 pptx',
     todo:['<b>[전체 점검]</b>을 누르면 관리자가 등록한 점검 항목을 모두 돌립니다.','문서에 밑줄 친 곳을 누르면 이유와 고친 안이 오른쪽에 보입니다.','다 고친 뒤 <b>[pptx로 받기]</b>를 누릅니다.'] },
 ];
-function stageDone(n) { return (n===1&&!!S.s1.topic)||(n===2&&S.draft==='ready')||(n===3&&S.report)||(n===4&&S.s4==='edit'&&!S.issues.some(i=>i.check==='review'&&i.status==='open'))||(n===5&&S.issues.length>0&&!S.issues.some(i=>i.status==='open')); }
+function stageDone(n) { return (n===1&&!!S.s1.topic)||(n===2&&S.draft==='ready'&&S.issues.length>0&&!S.issues.some(i=>i.status==='open'))||(n===3&&S.report)||(n===4&&S.s4==='edit'&&!S.issues.some(i=>i.check==='review'&&i.status==='open'))||(n===5&&S.issues.length>0&&!S.issues.some(i=>i.status==='open')); }
 function guideBox(n) {
   if (!S.openGuide[n]) return '';   // 평소에는 접어 두고, 머리의 [도움말]로 연다 (명세 2-4)
   return `<div class="guide">${ic('info','lg')}<div class="grow"><b>이 단계에서 할 일</b><ol>${STEPS[n-1].todo.map(t=>`<li>${t}</li>`).join('')}</ol></div>
@@ -755,17 +780,23 @@ function stepNav(n) {
   return `<div class="stepnav">
     ${n > 1 ? `<button class="btn" data-act="stage" data-v="${n-1}">${ic('left')} 이전: ${STEPS[n-2].name}</button>` : `<button class="btn" data-act="home">${ic('left')} 처음 화면</button>`}
     <span class="grow"></span>
-    ${n < 5 ? (done ? `<button class="btn pri" data-act="stage" data-v="${n+1}">다음: ${STEPS[n].name} ${ic('right')}</button>` : '')
+    ${n < 5 ? (done ? `<button class="btn" data-act="stage" data-v="${n+1}">다음: ${STEPS[n].name} ${ic('right')}</button>` : '')
             : `<button class="btn" data-act="home">처음 화면으로 ${ic('right')}</button>`}</div>`;
 }
 function progressHTML() {
   const L = S.loading;
+  if (L.failed) return `<div class="card" role="alert" style="padding:24px"><h2 style="margin-top:0">${ic('alert','lg')} 이 작업을 끝내지 못했습니다</h2>
+    <p>${esc(L.title.replace(/\s*중…$/, ''))} 단계의 "${esc(L.steps[L.i])}"에서 멈췄습니다.</p>
+    <p class="muted">짐작되는 이유: 사내 AI 서버가 응답하지 않았습니다. (시안 예시) 이미 한 작업은 그대로 남아 있습니다.</p>
+    <div class="row" style="margin-top:12px"><button class="btn" data-act="loadBack">${ic('left')} 이전 화면으로</button><button class="btn pri" data-act="loadRetry">${ic('history')} 다시 시도</button></div></div>`;
   return `<div class="card" aria-busy="true" style="text-align:center;padding:28px"><h2 style="margin-top:0">${esc(L.title)}</h2>
     <p class="muted">${esc(L.note || '')}</p><ol class="progress">${L.steps.map((t,i)=>`<li class="${i<L.i?'done':i===L.i?'now':''}">${i<L.i?ic('check'):i===L.i?'<span class="spin"></span>':'<span class="dotc"></span>'}${esc(t)}</li>`).join('')}</ol></div>`;
 }
-function runLoading(title, steps, note, done) {
-  S.loading = { title, steps, note, i:0 }; render();
-  const t = setInterval(() => { S.loading.i++; if (S.loading.i >= steps.length) { clearInterval(t); S.loading = null; done(); } render(); }, 380);
+function runLoading(title, steps, note, done, noFail) {
+  S.loading = { title, steps, note, i:0, retry:() => runLoading(title, steps, note, done, true) }; render(); $('live').textContent = `${title} ${steps[0]}`;
+  const t = setInterval(() => {
+    if (S.simFail && !noFail && S.loading.i === 1) { clearInterval(t); S.loading.failed = true; render(); $('live').textContent = '작업을 끝내지 못했습니다. 다시 시도할 수 있습니다.'; return; }
+    S.loading.i++; if (S.loading.i >= steps.length) { clearInterval(t); S.loading = null; done(); $('live').textContent = '끝났습니다.'; } else $('live').textContent = steps[S.loading.i]; render(); }, 380);
 }
 
 /* =====================================================================
@@ -787,7 +818,15 @@ function render() {
   else if (S.view === 'home') html = vHome();
   else if (S.loading) html = `${guideBox(S.stage)}${progressHTML()}`;
   else html = [v1,v2,v3,v4,v5][S.stage-1]();
+  const ae = document.activeElement, fsel = ae && ae !== document.body && ae.closest && !ae.closest('#pop')
+    ? (ae.id ? '#' + CSS.escape(ae.id) : ae.dataset && ae.dataset.act ? `[data-act="${ae.dataset.act}"]` + (ae.dataset.v !== undefined ? `[data-v="${CSS.escape(ae.dataset.v)}"]` : '') + (ae.dataset.box ? `[data-box="${ae.dataset.box}"]` : '') : null) : null;
   $('main').innerHTML = html;
+  // 원칙 10: 같은 화면이면 포커스를 그 자리에, 화면이 바뀌면 제목으로
+  const screen = [S.mode, S.view, S.stage, S.s1.step, S.s1.taskIdx, S.s3step, S.draft, S.s4, S.cpIdx, S.adminTab, !!S.loading].join('|');
+  const h1 = document.querySelector('#main h1'); if (h1) h1.setAttribute('tabindex', '-1');
+  if (S._screen && screen !== S._screen && h1) h1.focus({ preventScroll:true });
+  else if (fsel) { const f = document.querySelector(fsel); f && f.focus({ preventScroll:true }); }
+  S._screen = screen;
   const base = location.hash + S.s1.step + S.s1.taskIdx + S.s3step + S.cur + S.adminTab;
   document.querySelectorAll('#main details.more').forEach((d, i) => { const k = base + i; if (S.openDet[k]) d.open = true; d.addEventListener('toggle', () => { S.openDet[k] = d.open; }); });
   document.querySelectorAll('input[type=text]').forEach(i => i.setAttribute('autocomplete', 'off'));
@@ -824,10 +863,10 @@ function slotHTML(k, label, hint, accept = '') {
 }
 function vCp() {
   const cp = S.cps[S.cpIdx], last = S.cpIdx === S.cps.length - 1;
-  return `<div class="narrow"><h1>${esc(cp.title.replace(/^[A-Z]\d+\.\s*/, ''))} 확인</h1>
-  <p class="lead">AI가 만든 결과입니다. 맞으면 다음으로 넘어가세요. (${S.cpIdx+1} / ${S.cps.length})</p>${guideBox(2)}
-  <div class="substeps" role="list">${S.cps.map((c,i)=>`<button role="listitem" data-act="cpGo" data-v="${i}" ${i===S.cpIdx?'aria-current="step"':''} ${i>0&&!S.cps[i-1].ok?'disabled':''}>${c.ok?ic('check'):''} ${i+1}. ${esc(c.title)}</button>`).join('')}<button disabled>${S.cps.length+1}. 초안 완성</button></div>
-  <div class="card"><h3>${esc(cp.title)}</h3><div class="pre" style="margin-top:8px">${esc(cp.text)}</div></div>
+  return `<div class="narrow"><div class="progline"><span class="muted">확인 ${S.cpIdx+1} / ${S.cps.length}</span> <b>${esc(cp.name)}</b>
+    ${S.cpIdx?`<button class="btn link" data-act="cpGo" data-v="${S.cpIdx-1}">${ic('left')} ${esc(S.cps[S.cpIdx-1].name)}(으)로</button>`:''}<div class="bar" aria-hidden="true"><i style="width:${Math.round((S.cpIdx+1)/S.cps.length*100)}%"></i></div></div>
+  <h1>${esc(cp.name)}</h1><p class="lead">AI가 만든 결과입니다. 맞으면 다음으로 넘어가세요.</p>${guideBox(2)}
+  <div class="card"><div class="pre">${esc(cp.text)}</div></div>
   ${aiBox('cp', ['핵심 판단 지점을 하나 더 넣어 줘','난이도를 한 단계 낮춰 줘'], '이 단계 결과에서 고칠 점을 적으세요')}
   <div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn pri" data-act="cpOk">${last?'확인하고 초안 완성':'확인하고 다음으로'} ${ic('right')}</button></div>${stepNav(2)}</div>`;
 }
@@ -842,7 +881,7 @@ function v2() {
     ${S.slots.task?`<p class="help" style="margin:-4px 0 10px 4px">AI가 읽은 목차: 세로 · A4 · 자료 5개 · 역할 구분 2개</p>`:''}
     ${slotHTML('guide','3. 참조할 평가자가이드','pptx, pdf 또는 docx')}
     <button class="btn pri big" style="margin-top:6px" data-act="makeDraft" ${n===3?'':'disabled aria-describedby="why2"'}>초안 만들기</button>
-    ${n<3?`<p class="help" id="why2">파일 3개 중 ${n}개를 올렸습니다. ${miss.join(', ')}을(를) 올려 주세요. <button class="btn link" data-act="fillSlots">시안 체험: 예시 파일로 채우기</button></p>`:''}
+    ${n<3?`<p class="help" id="why2">파일 3개 중 ${n}개를 올렸습니다. ${miss.join(', ')}을(를) 올려 주세요. <button class="demo" data-act="fillSlots">예시 파일로 채우기</button></p>`:''}
     ${stepNav(2)}</div>`;
 }
 
@@ -865,14 +904,12 @@ function editorHTML(stage) {
         <span>${esc(x.title)}</span>${n?`<span class="cnt">${n}<span class="sr">건 점검 결과</span></span>`:''}<span class="pg">${x.page?x.page+'쪽':''}</span></button>`;
     });
   });
-  const summary = stage === 5 && open.length ? `<div class="summary">${S.checks.filter(c=>c.on&&c.where.includes(5)).map(c=>{
-      const n = S.issues.filter(i=>i.check===c.id&&i.status==='open').length; return `<span class="tag" style="border-left:3px solid ${c.color}">${esc(c.name)} ${n}건</span>`; }).join('')}</div>` : '';
   const tabs = [['chat','채팅','chat'],['issues',`점검 결과 ${open.length}`,'alert'],['hist',`수정 기록 ${S.history.length}`,'history']];
   const coach = S.coachSeen ? '' : `<div class="coach" role="note" aria-label="편집 화면 사용법">
       <div><b class="n">1</b><span>왼쪽 <b>목차</b>에서 고칠 항목을 고릅니다.</span></div>
-      <div><b class="n">2</b><span>본문 글자를 <b>드래그</b>하면 그 부분만 고칠 수 있습니다.</span></div>
-      <div><b class="n">3</b><span><b>점검 버튼</b>을 누르면 오른쪽에 결과가 나옵니다.</span></div>
-      <button class="btn pri" data-act="coachOk">알겠습니다</button></div>`;
+      <div><b class="n">2</b><span>본문 글자를 <b>드래그</b>하거나 <b>[이 항목 고쳐 달라고 하기]</b>로 고칩니다.</span></div>
+      <div><b class="n">3</b><span><b>[전체 점검]</b>을 누르면 결과 칸에 나오고, <b>[하나씩 검토]</b>로 차례로 정합니다.</span></div>
+      <button class="btn" data-act="coachOk">알겠습니다</button></div>`;
   return `
   ${stage===4?reqSummary():''}
   ${coach}
@@ -891,9 +928,10 @@ function editorHTML(stage) {
           ${checks.map(c=>{ const n = open.filter(i=>i.check===c.id).length; return `<button class="ckbtn" style="--c:${c.color}" data-act="runCheck" data-v="${c.id}"><i></i>${esc(c.name)}${n?` <span class="cnt">${n}</span>`:''}</button>`; }).join('')}</div></details>
       </div>
       <div class="doc">
+        ${reviewBar()}
         ${S.impact[b.id]?`<div class="impact">${ic('alert')}<span class="grow"><b>함께 확인 필요</b> · ${esc(S.impact[b.id])}</span><button class="btn sm" data-act="impactOk">확인했습니다</button></div>`:''}
         <div class="title">${esc(b.title)}</div>
-        <div class="meta">${b.doc} · ${esc(b.g)}${b.page?` · ${b.page}쪽`:''}${b.sheets?` · ${b.sheets}장`:''}</div>
+        <div class="meta row"><span class="grow">${b.doc} · ${esc(b.g)}${b.page?` · ${b.page}쪽`:''}${b.sheets?` · ${b.sheets}장`:''}</span><button class="btn sm link" data-act="askBlock">${ic('chat')} 이 항목 고쳐 달라고 하기</button></div>
         <div id="docbody">${S.diff ? diffHTML(S.base[b.id], b.text) : bodyHTML(b)}</div>
       </div>
     </section>
@@ -902,7 +940,7 @@ function editorHTML(stage) {
       <div class="pbody" id="pbody" role="tabpanel">${S.panel==='chat'?chatHTML():S.panel==='issues'?issuesHTML(stage):histHTML()}</div>
       <div class="ask">
         <div class="scope">고칠 범위: <span>${S.scope?esc(S.scope.label):esc(b.title)}</span>${S.scope?`<button class="btn sm" data-act="clearScope">해제</button>`:''}</div>
-        <form data-act-submit="ask"><label for="askIn" class="sr">요청 입력</label><input type="text" id="askIn" class="grow" placeholder="고칠 내용이나 점검할 것을 적으세요"><button class="btn pri">보내기</button></form>
+        <form data-act-submit="ask"><label for="askIn" class="sr">요청 입력</label><input type="text" id="askIn" class="grow" placeholder="요청을 적으세요 (예: 더 짧게)"><button class="btn">보내기</button></form>
       </div>
     </section>
   </div>`;
@@ -913,7 +951,9 @@ function bodyHTML(b) {
     if (/^\[\d+\/\d+\]/.test(line)) return `<div class="sheet">${esc(line)}</div>`;
     if (/^\[그림\]/.test(line)) return `<div class="figure">${ic('image')}${esc(line.slice(4).trim())} — 그림은 AI가 고치지 않습니다. 직접 고쳐 주세요.</div>`;
     let h = esc(line);
-    marks.forEach(m => { const f = esc(m.find); if (h.includes(f)) h = h.replace(f, `<mark class="iss ${S.activeIssue===m.id?'sel':''}" style="--c:${chk(m.check).color}" data-act="focusIssue" data-v="${m.id}" tabindex="0" title="${esc(chk(m.check).name)}: 눌러서 이유 보기">${f}</mark>`); });
+    const rv = S.review && !S.review.done ? S.issues.find(x => x.id === S.review.ids[S.review.idx]) : null;
+    if (rv && rv.block === b.id && h.includes(esc(rv.find))) h = h.replace(esc(rv.find), `<span id="rvspot">${diffInline(rv.find, rv.fix)}</span>`);
+    marks.forEach(m => { if (rv && m.id === rv.id) return; const f = esc(m.find); if (h.includes(f)) h = h.replace(f, `<mark class="iss ${S.activeIssue===m.id?'sel':''}" style="--c:${chk(m.check).color}" data-act="focusIssue" data-v="${m.id}" tabindex="0" title="${esc(chk(m.check).name)}: 눌러서 이유 보기">${f}</mark>`); });
     if (line.startsWith('|')) return `<table><tr>${h.split('|').slice(1,-1).map(c=>`<td>${c.trim()}</td>`).join('')}</tr></table>`;
     return `<p>${h || '&nbsp;'}</p>`;
   }).join('').replace(/<\/table><table>/g,'');
@@ -934,20 +974,33 @@ function chatHTML() {
   return S.chat.map(m => `<div class="msg ${m.me?'me':'ai'}">${esc(m.t)}</div>`).join('');
 }
 function issuesHTML(stage) {
-  if (!S.issues.length) return `<div class="empty">${ic('check')}<p>아직 점검하지 않았습니다.</p><p style="margin:10px 0">위의 점검 버튼을 하나씩 누르거나, 한 번에 모두 점검하세요.</p><button class="btn pri" data-act="runAll">전체 점검</button></div>`;
-  const sorted = [...S.issues].sort((a,b)=>(a.status==='open'?0:1)-(b.status==='open'?0:1));
-  const wholeOpen = S.issues.filter(i => i.check === 'whole' && i.status === 'open').length;
-  return (wholeOpen ? `<div class="prop" style="margin:0 0 10px"><div><b>전체 수정 제안 ${wholeOpen}건</b> · 하나씩 고르거나 한꺼번에 정하세요.</div>
-    <div class="row"><button class="btn sm pri" data-act="wholeAll" data-v="apply">모두 반영</button><button class="btn sm" data-act="wholeAll" data-v="ignore">모두 반영 안 함</button></div></div>` : '') + sorted.map(i => { const c = chk(i.check), b = B(i.block);
-    return `<div class="issue ${i.status!=='open'?'done':''}" style="--c:${c.color}" id="iss-${i.id}">
-      <div class="h"><b>${esc(c.name)}</b><span class="loc">${esc(b.title)}${b.page?` · ${b.page}쪽`:''}</span></div>
-      <div style="white-space:pre-wrap">${esc(i.why)}</div>
-      <div class="muted" style="margin-top:6px">원문: “${esc(i.find)}”</div>
-      ${i.status==='open'?`<label for="fix-${i.id}">고친 안 <span class="muted" style="font-weight:400">직접 다듬은 뒤 반영할 수 있습니다</span></label><textarea id="fix-${i.id}" data-fix="${i.id}">${esc(i.fix)}</textarea>
-        <div class="row"><button class="btn sm pri" data-act="apply" data-v="${i.id}">${ic('check')} 반영</button><button class="btn sm" data-act="otherFix" data-v="${i.id}">다른 안 제안받기</button><button class="btn sm" data-act="ignore" data-v="${i.id}">반영 안 함</button>
-        <button class="btn sm link" data-act="focusIssue" data-v="${i.id}">문서에서 위치 보기</button></div>${i.altNo?`<div class="muted" style="margin-top:4px">${i.altNo}번째 다른 안입니다.</div>`:''}`
-        :`<div class="muted" style="margin-top:6px">${i.status==='applied'?`<span class="okc">${ic('check')}</span> 반영했습니다`:'반영하지 않았습니다'}</div>`}
-      ${i.ref?`<div class="ref">${ic('clip')}<span>${esc(i.ref)}</span></div>`:''}</div>`; }).join('');
+  if (!S.issues.length) return `<div class="empty">${ic('check')}<p>아직 점검하지 않았습니다.</p><p style="margin:10px 0">[전체 점검]을 누르면 결과가 여기에 나옵니다.</p><button class="btn" data-act="runAll">전체 점검</button></div>`;
+  const sorted = [...S.issues].sort((a,b)=>(a.status==='open'?0:1)-(b.status==='open'?0:1)), openN = S.issues.filter(i => i.status === 'open').length;
+  return (openN ? `<div class="row" style="margin-bottom:10px"><span class="grow muted">남은 것 ${openN}건</span><button class="btn sm" data-act="reviewAll">${ic('right')} 하나씩 검토</button></div>` : '') + sorted.map(i => { const c = chk(i.check), b = B(i.block), on = S.openIssue === i.id && i.status === 'open';
+    return `<div class="issue ${on?'open':''} ${i.status!=='open'?'done':''}" style="--c:${c.color}" id="iss-${i.id}">
+      <button class="sumbtn" data-act="openIssue" data-v="${i.id}" aria-expanded="${on}"><i class="sw" aria-hidden="true"></i><span class="grow" style="min-width:0"><b>${esc(c.name)}</b> <span class="muted">${esc(b.title)}${b.page?` · ${b.page}쪽`:''}</span>
+        <span class="one">${i.status==='open'?esc(i.why.split('\n')[0]):i.status==='applied'?'반영했습니다':'반영하지 않았습니다'}</span></span></button>
+      ${on?`<div class="body"><div style="white-space:pre-wrap">${esc(i.why)}</div>
+        <div class="cmp" aria-label="바뀌는 부분">${diffInline(i.find, i.fix)}</div>${i.altNo?`<div class="muted">${i.altNo}번째 다른 안입니다.</div>`:''}
+        <details class="more"><summary>${ic('edit')} 직접 다듬기</summary><label for="fix-${i.id}" class="sr">고친 안</label><textarea id="fix-${i.id}" data-fix="${i.id}">${esc(i.fix)}</textarea></details>
+        <div class="row" style="margin-top:8px"><button class="btn sm pri" data-act="apply" data-v="${i.id}">${ic('check')} 반영</button><button class="btn sm" data-act="otherFix" data-v="${i.id}">다른 안 제안받기</button><button class="btn sm" data-act="ignore" data-v="${i.id}">반영 안 함</button></div>
+        ${i.ref?`<div class="ref">${ic('clip')}<span>${esc(i.ref)}</span></div>`:''}</div>`:''}</div>`; }).join('');
+}
+function impactCount(i) {   // 고치면 같은 숫자를 쓰는 다른 항목이 몇 곳인지
+  const gone = i.find.split(/[\s,.:()]+/).filter(w => w.length > 1 && /\d/.test(w) && !i.fix.includes(w));
+  return S.blocks.filter(x => x.id !== i.block && gone.some(w => x.text.includes(w))).length;
+}
+function reviewBar() {   // 명세 5-6: AI 제안 검토 모드
+  const r = S.review; if (!r) return '';
+  if (r.done) return `<div class="rv" role="region" aria-label="제안 검토 결과"><b>검토를 마쳤습니다. ${r.ids.length}건 가운데 ${r.applied.length}건 반영, ${r.ids.length - r.applied.length}건 넘김</b>
+    <span class="muted">넘긴 제안은 점검 결과에 남아 있습니다.</span>
+    <div class="row">${r.applied.length?`<button class="btn sm" data-act="reviewUndoAll">${ic('history')} 반영한 것 모두 되돌리기</button>`:''}<span class="grow"></span><button class="btn sm" data-act="reviewEnd">닫기</button></div></div>`;
+  const i = S.issues.find(x => x.id === r.ids[r.idx]), c = chk(i.check), n = impactCount(i);
+  return `<div class="rv" role="region" aria-label="제안 검토">
+    <div class="row"><b>제안 ${r.idx + 1} / ${r.ids.length}</b><span class="muted"><span class="sw" style="--c:${c.color}"></span> ${esc(c.name)}</span><span class="grow"></span><button class="btn sm link" data-act="reviewEnd">검토 끝내기</button></div>
+    <div style="white-space:pre-wrap">${esc(i.why)}</div>${n?`<div class="muted">${ic('alert')} 반영하면 다른 항목 ${n}곳(평가자가이드 포함)도 함께 확인해야 합니다.</div>`:''}
+    <div class="row"><button class="btn pri" data-act="reviewApply">${ic('check')} 반영</button><button class="btn" data-act="reviewOther">다른 안 제안받기</button><button class="btn" data-act="reviewSkip">넘기기 ${ic('right')}</button>
+      <span class="muted">문서에서 <del>지운 글자</del>와 <ins>넣은 글자</ins>를 확인하세요.</span></div></div>`;
 }
 function histHTML() {
   if (!S.history.length) return `<div class="empty">${ic('history')}<p>아직 고친 내용이 없습니다.</p><p>고칠 때마다 여기에 기록이 남고, 아무 기록이나 골라 되돌릴 수 있습니다.</p></div>`;
@@ -962,7 +1015,7 @@ function vStruct(n) {
   const tb = S.blocks.filter(b => b.doc === '평가과제'), groups = [...new Set(tb.map(b => b.g))];
   return `<div class="narrow" style="max-width:920px">${guideBox(n)}<h1>목차 확인</h1>
     <p class="lead">${esc(S.structFile||'평가과제.pptx')} · 세로 · A4 · 13장 · 자료 표기 "자료 N." · 역할 간지 2장</p>
-    <div class="note">${ic('info')}<span>AI가 파일을 읽고 나눈 목차입니다. <b>틀린 곳만</b> 고치세요. 확인한 목차는 이 용역의 다음 파일을 열 때 먼저 적용됩니다.</span></div>
+    <div class="note info">${ic('info')}<span>AI가 파일을 읽고 나눈 목차입니다. <b>틀린 곳만</b> 고치세요. 확인한 목차는 이 용역의 다음 파일을 열 때 먼저 적용됩니다.</span></div>
     <div class="tablewrap"><table class="t"><tr><th>항목</th><th>쪽</th><th>구분</th><th></th></tr>
     ${tb.map((b,i)=>`<tr><td>${esc(b.title)}</td><td>${b.page||'-'}</td>
       <td><label class="sr" for="grp-${b.id}">${esc(b.title)} 구분</label><select id="grp-${b.id}" data-grp="${b.id}">${groups.map(g=>`<option ${g===b.g?'selected':''}>${esc(g)}</option>`).join('')}</select></td>
@@ -974,43 +1027,43 @@ function vStruct(n) {
 function openFileView(n) {
   return `<div class="narrow">${guideBox(n)}<h1>${STEPS[n-1].name}</h1><p class="lead">${n===4?'고칠 평가과제가 없습니다. ② 과제 초안을 만들거나 평가과제 pptx를 올리세요.':'검수할 평가과제를 올리세요. ④ 결과가 있으면 자동으로 선택됩니다.'}</p>
     <label class="slot">${ic('upload','lg')}<span class="grow"><span class="t">평가과제 pptx${n===5?' (평가자가이드 포함 가능)':''}</span><br><span class="s">가로·세로, 자료 개수와 상관없이 올릴 수 있습니다.</span></span><span class="btn sm">파일 고르기</span><input type="file" data-slot="pptx${n}" accept=".pptx,.ppt,.pdf"></label>
-    <p class="help"><button class="btn link" data-act="demoPptx" data-v="${n}">시안 체험: 예시 과제 파일로 열기</button></p>${stepNav(n)}</div>`;
+    <p class="help"><button class="demo" data-act="demoPptx" data-v="${n}">예시 과제 파일로 열기</button></p>${stepNav(n)}</div>`;
 }
 
 /* ---------- ③ 검토회의 보고서 ---------- */
 function v3() {
-  if (!S.audio) return `<div class="narrow">${guideBox(3)}<h1>검토회의 결과보고서</h1><p class="lead">회의 녹음을 올리면 글로 바꾸고 화자를 나눕니다. 그다음 양식의 칸을 채웁니다.</p>
+  if (!S.audio) return `<div class="narrow">${guideBox(3)}<h1>검토회의 보고서</h1><p class="lead">회의 녹음을 올리면 글로 바꾸고 화자를 나눕니다. 그다음 양식의 칸을 채웁니다.</p>
     <label class="slot">${ic('mic','lg')}<span class="grow"><span class="t">회의 녹음 파일</span><br><span class="s">mp3, m4a, wav · 1시간 녹음 기준 약 5분 걸립니다.</span></span><span class="btn sm">파일 고르기</span><input type="file" data-slot="audio" accept="audio/*"></label>
     <div class="field" style="margin-top:14px"><span class="lbl">참석 인원<span class="opt">모르면 자동</span></span><div class="row" role="group" aria-label="참석 인원">${['자동','3명','4명','5명'].map(n=>`<button class="chip" aria-pressed="${S.people===n}" data-act="people" data-v="${n}">${n}</button>`).join('')}</div></div>
-    <p class="help"><button class="btn link" data-act="demoAudio">시안 체험: 예시 녹음으로 해 보기</button></p>${stepNav(3)}</div>`;
+    <p class="help"><button class="demo" data-act="demoAudio">예시 녹음으로 해 보기</button></p>${stepNav(3)}</div>`;
   const sub = ['녹취록 확인','양식 칸 확인','미리보기·받기'];
-  return `${guideBox(3)}<h1>검토회의 결과보고서</h1><p class="lead">${esc(S.audio)} · 화자 ${S.speakers.length}명 · 발언 ${S.lines.length}개</p>
+  return `${guideBox(3)}<h1>검토회의 보고서</h1><p class="lead">${esc(S.audio)} · 화자 ${S.speakers.length}명 · 발언 ${S.lines.length}개</p>
     <div class="substeps" role="list">${sub.map((t,i)=>`<button role="listitem" data-act="s3step" data-v="${i+1}" ${S.s3step===i+1?'aria-current="step"':''}>${i+1}. ${t}</button>`).join('')}</div>
     ${[v3a,v3b,v3c][S.s3step-1]()}${stepNav(3)}`;
 }
 function v3a() {
   const spk = S.speakers;
   const edit = S.editSpk !== null ? (() => { const p = spk[S.editSpk]; return `<div class="card" style="border-color:var(--accent)">
-      <div class="lbl">Speaker ${S.editSpk+1} 정보 <span class="muted" style="font-weight:400">— 이 화자의 모든 발언에 한 번에 적용됩니다</span></div>
+      <div class="lbl">화자 ${S.editSpk+1} 정보 <span class="muted" style="font-weight:400">— 이 화자의 모든 발언에 한 번에 적용됩니다</span></div>
       <div class="row" style="align-items:flex-end">
-        <div class="grow"><label for="spName" class="muted">이름</label><input type="text" id="spName" placeholder="예: 김○○" value="${esc(p.name.startsWith('Speaker')?'':p.name)}"></div>
+        <div class="grow"><label for="spName" class="muted">이름</label><input type="text" id="spName" placeholder="예: 김○○" value="${esc(/^화자 \d+$/.test(p.name)?'':p.name)}"></div>
         <div class="grow"><label for="spOrg" class="muted">소속</label><input type="text" id="spOrg" placeholder="예: ○○대학교 교수" value="${esc(p.org)}"></div>
         <div><label for="spRole" class="muted">구분</label><select id="spRole">${['','검토위원','발주처','개발사'].map(r=>`<option ${p.role===r?'selected':''} value="${r}">${r||'고르세요'}</option>`).join('')}</select></div>
         <button class="btn pri" data-act="saveSpk">저장</button><button class="btn" data-act="cancelSpk">취소</button></div></div>`; })() : '';
   const none = spk.filter(p => !p.role).length;
   return `<div class="lbl">화자 <span class="muted" style="font-weight:400">눌러서 이름·소속·구분을 적으세요${none?` · 구분을 정하지 않은 화자 ${none}명`:''}</span></div>
   <div class="row" style="margin-bottom:10px">${spk.map((p,i)=>`<button class="spk" style="--sc:${p.c}" data-act="editSpk" data-v="${i}"><i></i><b>${esc(p.name)}</b>${p.role?`<span class="tag">${p.role}</span>`:'<span class="tag warn">구분 없음</span>'}${ic('edit')}</button>`).join('')}
-    <button class="btn link" data-act="demoRoles">시안 체험: 예시 화자 정보 넣기</button></div>
+    <button class="demo" data-act="demoRoles">예시 화자 정보 넣기</button></div>
   ${edit}
   <div class="card" style="max-height:440px;overflow-y:auto;padding:8px" id="tscript">
     ${S.playing!==null?`<div class="player">${ic('play')}<span class="grow">${S.lines[S.playing].t}부터 재생 중</span><button class="btn sm" data-act="stop">${ic('pause')} 멈춤</button></div>`:''}
     <p class="muted" style="padding:4px 8px">시각을 누르면 그 부분부터 재생됩니다. 잘못 들린 글자는 눌러서 바로 고치세요.</p>
     ${S.lines.map((l,i)=>{ const p = spk[l.s]; return `<div class="line ${S.playing===i?'on':''}" style="--sc:${p.c}" id="ln-${i}">
-      <div class="who">${esc(p.name)}<br><label class="sr" for="ls-${i}">화자 바꾸기</label><select id="ls-${i}" data-line="${i}">${spk.map((q,k)=>`<option value="${k}" ${k===l.s?'selected':''}>${esc(q.name)}</option>`).join('')}</select></div>
+      <div class="who"><label class="sr" for="ls-${i}">화자 바꾸기</label><i aria-hidden="true"></i><select id="ls-${i}" data-line="${i}">${spk.map((q,k)=>`<option value="${k}" ${k===l.s?'selected':''}>${esc(q.name)}</option>`).join('')}</select></div>
       <div><button class="btn sm" data-act="play" data-v="${i}" aria-label="${l.t}부터 재생">${ic('play')}${l.t}</button></div>
       <div class="txt" contenteditable="true" data-txt="${i}" aria-label="발언 내용">${esc(l.text)}</div></div>`; }).join('')}
   </div>
-  ${aiBox('tscript', ['00:13:30 발언은 Speaker 1의 발언이야','"총예산"을 "총 예산"으로 모두 고쳐 줘'], '녹취록에서 고칠 점을 적으세요 (화자, 글자 등)')}
+  ${aiBox('tscript', ['00:13:30 발언은 화자 1의 발언이야','"총예산"을 "총 예산"으로 모두 고쳐 줘'], '녹취록에서 고칠 점을 적으세요 (화자, 글자 등)')}
   <div class="row"><span class="grow"></span><button class="btn pri" data-act="s3step" data-v="2">다음: 양식 칸 확인 ${ic('right')}</button></div>`;
 }
 function v3b() {
@@ -1150,8 +1203,8 @@ function doSave(p, text) {
 }
 function aChecks() {
   return `<h1>점검 항목 관리</h1><p class="lead">여기 등록한 항목이 이용자 편집 화면의 점검 버튼이 됩니다. 이용자는 버튼만 누르고, 추가 점검은 채팅으로 합니다.</p>
-  ${S.checks.map((c,i)=>{ const ed = S.editCheck===c.id; return `<div class="card" style="border-left:4px solid ${c.color}">
-    <div class="row"><b class="grow">${esc(c.name)} ${c.on?'':'<span class="tag">숨김</span>'}</b>
+  ${S.checks.map((c,i)=>{ const ed = S.editCheck===c.id; return `<div class="card">
+    <div class="row"><b class="grow"><span class="swatch" style="--c:${c.color}" aria-hidden="true"></span> ${esc(c.name)} ${c.on?'':'<span class="tag">숨김</span>'}</b>
       <span class="muted">보이는 단계 ${c.where.map(w=>'①②③④⑤'[w-1]).join(' ')} · 계산 코드 ${c.calc?'사용':'안 씀'}</span>
       <button class="btn sm" data-act="cUp" data-v="${i}" ${i?'':'disabled'} aria-label="${esc(c.name)} 위로 옮기기">${ic('up')}</button><button class="btn sm" data-act="cEdit" data-v="${c.id}">${ed?'닫기':`${ic('edit')} 고치기`}</button></div>
     ${ed?`<div style="margin-top:12px">
@@ -1182,6 +1235,8 @@ function aSettings() {
   return `<h1>설정</h1>
   <div class="card"><label class="switch"><input type="checkbox" data-bind="web" ${S.web?'checked':''}> <b>웹 검색 사용</b></label>
     <p class="help">끄면 주제 탐색의 시의성 확인과 의견 반영의 참고 조사를 사내 참고자료로만 합니다.</p></div>
+  <div class="card"><label class="switch"><input type="checkbox" data-bind="simFail" ${S.simFail?'checked':''}> <b>시안 체험: 진행 중 실패 화면 보기</b></label>
+    <p class="help">켜면 AI 작업이 두 번째 단계에서 실패한 것처럼 보여 줍니다. 실패 화면과 [다시 시도]를 확인하는 용도입니다.</p></div>
   <div class="card"><div class="lbl">이용자 권한</div><div class="tablewrap"><table class="t"><tr><th>이름</th><th>권한</th></tr>
     <tr><td>김○○</td><td>관리자</td></tr><tr><td>이○○</td><td>이용자</td></tr><tr><td>박○○</td><td>이용자</td></tr></table></div>
     <p class="help">관리자 화면 버튼은 관리자 권한이 있는 사람에게만 보입니다.</p></div>`;
@@ -1216,9 +1271,11 @@ function runAll(stage) {
 function apply(iid) {
   const i = S.issues.find(x => x.id === iid); const ta = document.querySelector(`[data-fix="${iid}"]`); if (ta) i.fix = ta.value;
   const b = B(i.block);
-  if (!b.text.includes(i.find)) { toast('원문이 이미 바뀌어 반영할 수 없습니다.'); return; }
+  if (!b.text.includes(i.find)) { toast('원문이 이미 바뀌어 이 고친 안은 쓸 수 없습니다. [다른 안 제안받기]를 누르거나 직접 고쳐 주세요.'); return; }
+  const before = b.text;
   setText(i.block, b.text.replace(i.find, i.fix), i.check==='chat'?'이용자':'AI', `${chk(i.check).name}: “${i.find}” → “${i.fix}”`);
-  i.status = 'applied'; S.cur = i.block; render(); toast('반영했습니다. 수정 기록에서 되돌릴 수 있습니다.');
+  i.status = 'applied'; S.cur = i.block; S.openIssue = null; render();
+  toast('반영했습니다.', () => { setText(i.block, before, '이용자', '방금 반영한 것 되돌림'); i.status = 'open'; render(); });
 }
 function ask(text) {
   S.chat.push({ me:true, t:text });
@@ -1257,7 +1314,7 @@ const ACT = {
   runAll: () => runAll(curStage()),
   apply: el => apply(+el.dataset.v),
   ignore: el => { S.issues.find(x => x.id === +el.dataset.v).status = 'ignored'; render(); },
-  focusIssue: el => { const i = S.issues.find(x => x.id === +el.dataset.v); S.cur = i.block; S.activeIssue = i.id; S.panel = 'issues'; S.diff = false; render();
+  focusIssue: el => { const i = S.issues.find(x => x.id === +el.dataset.v); S.cur = i.block; S.activeIssue = i.id; S.openIssue = i.id; S.panel = 'issues'; S.diff = false; render();
     const c = $('iss-'+i.id); c && c.scrollIntoView({ block:'nearest' }); },
   impactOk: () => { delete S.impact[S.cur]; render(); },
   clearScope: () => { S.scope = null; render(); },
@@ -1277,7 +1334,7 @@ const ACT = {
   s3step: el => { S.s3step = +el.dataset.v; render(); },
   editSpk: el => { S.editSpk = +el.dataset.v; render(); const f = $('spName'); f && f.focus(); },
   cancelSpk: () => { S.editSpk = null; render(); },
-  saveSpk: () => { const p = S.speakers[S.editSpk]; p.name = $('spName').value.trim() || `Speaker ${S.editSpk+1}`; p.org = $('spOrg').value.trim(); p.role = $('spRole').value; S.editSpk = null; S.roleWarn = null; render(); toast('화자 정보를 모든 발언에 적용했습니다.'); },
+  saveSpk: () => { const p = S.speakers[S.editSpk]; p.name = $('spName').value.trim() || `화자 ${S.editSpk+1}`; p.org = $('spOrg').value.trim(); p.role = $('spRole').value; S.editSpk = null; S.roleWarn = null; render(); toast('화자 정보를 모든 발언에 적용했습니다.'); },
   demoRoles: () => { [['김○○','○○대학교 교수','검토위원'],['이○○','△△대학교 교수','검토위원'],['박○○','개발사 연구원','개발사'],['최○○','○○시 인재개발과 주무관','발주처']]
     .forEach(([n,o,r],i) => S.speakers[i] && Object.assign(S.speakers[i], { name:n, org:o, role:r })); S.roleWarn = null; render(); },
   play: el => { S.playing = +el.dataset.v; render(); },
@@ -1296,7 +1353,8 @@ const ACT = {
       const f = FINDINGS.find(x => x.check === r.req.check && S.blocks.some(b => b.text.includes(x.find))); if (!f) return;
       S.issues.push({ ...f, block:S.blocks.find(b => b.text.includes(f.find)).id, id:issueSeq++, check:'review', why:`${r.loc} ${r.op}${r.cl?`\n발주처: ${r.cl}`:''}\n반영 방향: ${r.plan}`, ref:r.ref || '참고: 같은 기법의 기출 과제 2건을 찾아 비교함', status:'open' });
     });
-    S.s4 = 'edit'; S.panel = 'issues'; S.cur = 'd3'; }),
+    S.s4 = 'edit'; S.panel = 'issues'; S.cur = 'd3';
+    setTimeout(() => reviewStart(S.issues.filter(i => i.check === 'review' && i.status === 'open').map(i => i.id)), 0); }),
   s4list: () => { S.s4 = 'list'; render(); },
   reqTable: () => toast('시안에서는 파일을 만들지 않습니다. 실제로는 "요청 → 반영 여부 → 고친 위치" 표를 엑셀로 내보냅니다.'),
   // 관리자
@@ -1340,9 +1398,8 @@ const ACT = {
   soon: () => toast('시안에서는 목록만 보여 줍니다.'),
 };
 function startStt(name) {
-  S.audio = name;
   runLoading('녹음을 글로 바꾸는 중…', ['음성을 글로 바꾸기','화자 나누기','발언 시각 맞추기'], '1시간 녹음 기준 약 5분 걸립니다. 다른 단계를 보고 있어도 계속 진행됩니다.', () => {
-    S.speakers = [0,1,2,3].map(i => ({ name:`Speaker ${i+1}`, org:'', role:'', c:SPK_COLORS[i] })); S.lines = clone(TRANSCRIPT0); S.s3step = 1; });
+    S.audio = name; S.speakers = [0,1,2,3].map(i => ({ name:`화자 ${i+1}`, org:'', role:'', c:SPK_COLORS[i] })); S.lines = clone(TRANSCRIPT0); S.s3step = 1; });
 }
 
 /* ---------- ① 주제 탐색: 자료·DB (관리자 화면 > 자료·DB 관리와 같은 데이터, 시안용으로 지어낸 값) ---------- */
@@ -1390,7 +1447,7 @@ const histFor = (c, g, m) => S.db.hist.filter(r => r[1] === c && r[2] === g && (
 function fileLink(name) {
   if (!name) return '';
   const ok = SERVER_FILES.has(name);
-  return `<button class="flink" data-act="preview" data-v="${esc(name)}" title="눌러서 RAG로 찾은 부분 보기">${ic('file')}${esc(name)}</button>${ok?'':' <span class="tag warn">서버에 파일 없음</span>'}`;
+  return `<button class="flink" data-act="preview" data-v="${esc(name)}" title="눌러서 찾은 부분 보기">${ic('file')}${esc(name)}</button>${ok?'':' <span class="tag warn">서버에 파일 없음</span>'}`;
 }
 const tagB = t => `<span class="tag ${t==='DB 확인'?'ok':t==='추론'?'blue':t==='확인 불가'?'warn':''}">${t}</span>`;
 
@@ -1442,13 +1499,13 @@ function s1Steps() { const n = S.s1.cond ? S.s1.cond.tasks.length : 1;
 function s1StepKey() { return S.s1.step === 'task' ? 'task' + S.s1.taskIdx : S.s1.step; }
 function s1Nav() {   // 단계 버튼 대신 한 줄 진행 표시 (명세 2-4)
   const st = s1Steps(), cur = Math.max(0, st.findIndex(x => x[0] === s1StepKey())), prev = st[cur - 1];
-  return `<div class="progline"><span class="muted">단계 ${cur+1} / ${st.length}</span> <b>${esc(st[cur][1])}</b>
+  return `<div class="progline"><span class="muted">단계 ${cur+1}${S.s1.cond ? ` / ${st.length}` : ''}</span> <b>${esc(st[cur][1])}</b>
     ${prev && S.s1.step !== 'input' ? `<button class="btn link" data-act="s1go" data-v="${prev[0]}">${ic('left')} ${esc(prev[1])}(으)로</button>` : ''}
     <div class="bar" aria-hidden="true"><i style="width:${Math.round((cur+1)/st.length*100)}%"></i></div></div>`;
 }
 function tasksLine() { const f = S.s1.tasks.filter(t => t.fixed); if (!f.length) return '';
   return `<p class="muted" style="margin-bottom:10px">고정함: ${f.map(t=>`해결과제 ${t.no} <b style="color:var(--text)">${esc(t.fixed.name)}</b>`).join(' · ')}</p>`; }
-const S1_ASK = { input:'평가할 발주처, 직급, 평가 기법을 고르세요.', cond:'기출에서 찾은 평가 조건입니다. 맞으면 진행하세요.', struct:'기출 과제의 구조를 정리했습니다. 맞으면 진행하세요.',
+const S1_ASK = { input:'평가할 발주처, 직급, 평가 기법을 고르세요.', cond:'기출에서 찾은 평가 조건입니다. 맞으면 진행하세요.', struct:'기출 과제의 짜임을 정리했습니다. 과제 단위, 대립 구조, 규모가 이번 용역과 맞는지 보세요.',
   task:'후보 가운데 하나를 골라 고정하세요.', confirm:'아래 내용으로 스토리맵을 쓸까요?', story:'스토리맵을 확인하고 과제 초안으로 넘기세요.' };
 function v1() {
   const s = S.s1;
@@ -1476,7 +1533,7 @@ function v1Cond() {
   const pool = comps.length ? comps : ALL_COMPS, poolRows = S.db.pool.filter(r => r[0] === s.client && r[1] === s.grade);
   const unselected = poolRows.filter(r => r[4] === '미선정').length, practice = S.db.practice.filter(r => r[0] === s.client && r[1] === '2031');
   const qs = [];
-  if (unselected) qs.push(['unsel', `주제풀의 미선정 제안안 ${unselected}건도 겹치면 안 되는 주제로 볼까요?`, ['예','아니오']]);
+  if (unselected) qs.push(['unsel', `발주처 주제풀에서 채택되지 않은 제안 주제 ${unselected}건도 피할까요?`, ['예','아니오'], '추천: 예. 발주처가 이미 검토한 주제와 겹치지 않게 됩니다.']);
   if (c.rel === '무관' && !practice.length) qs.push(['practice', '발주처 실무와 겹치는지 보려면 올해 실무 자료가 필요합니다. 만들까요?', ['만듦','이번에는 건너뜀']]);
   const left = qs.filter(q => !s.answers[q[0]]).length, emptyComp = c.tasks.some(t => !t.comps.length);
   return `${c.found ? '' : `<div class="note">${ic('alert')}<span>이 조합의 기출이 없어 조건을 직접 정해야 합니다. 아래 [조건 고치기]를 눌러 주세요.</span></div>`}
@@ -1497,7 +1554,7 @@ function v1Cond() {
       <p class="help">겹침을 확인할 자료: 기출 ${histFor(s.client, s.grade).length}건 · 주제풀 ${poolRows.length}건${poolRows[0]?' '+fileLink(poolRows[0][5]):''}</p>
       <p class="help">역량 정의: ${comps.length?`${esc(s.client)} ${esc(s.grade)} 역량 정의 자료`:'자료 없음 (관리자에게 요청)'}</p></details>
   </div>
-  ${qs.map(([k,q,opts])=>`<div class="card" style="border-color:var(--accent)"><div class="lbl">${esc(q)}</div><div class="row" role="radiogroup" aria-label="${esc(q)}">${opts.map(o=>`<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="radio" name="q-${k}" data-s1q="${k}" value="${o}" ${s.answers[k]===o?'checked':''}> ${o}</label>`).join('')}</div></div>`).join('')}
+  ${qs.map(([k,q,opts,hint])=>`<div class="card" style="border-color:var(--accent)"><div class="lbl">${esc(q)}</div>${hint?`<p class="help" style="margin:0 0 8px">${esc(hint)}</p>`:''}<div class="row" role="radiogroup" aria-label="${esc(q)}">${opts.map(o=>`<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="radio" name="q-${k}" data-s1q="${k}" value="${o}" ${s.answers[k]===o?'checked':''}> ${o}</label>`).join('')}</div></div>`).join('')}
   <div class="row"><span class="grow"></span>${left?`<span class="muted" id="whyc">위 질문에 답해 주세요.</span>`:emptyComp?`<span class="muted">측정 역량을 정해 주세요.</span>`:''}
     <button class="btn pri" data-act="s1struct" ${left||emptyComp?'disabled':''}>이 조건으로 진행 ${ic('right')}</button></div>`;
 }
@@ -1514,17 +1571,15 @@ function v1Struct() {
   ${aiBox('struct1', ['규모를 사업비 10억 원 안팎으로 바꿔 줘','추가 관찰 특징을 더 찾아 줘'], '구조 분석에서 고칠 점을 적으세요')}
   <div class="row"><span class="grow"></span><button class="btn pri" data-act="s1structOk">맞습니다, 후보 보기 ${ic('right')}</button></div>`;
 }
-function v1Task() {
-  const s = S.s1, t = s.tasks[s.taskIdx], list = t.cands, first = s.taskIdx === 0;
-  return `${tasksLine()}<p style="margin-bottom:10px">측정 역량: <b>${esc(t.comps.join(', '))}</b></p>
-  <div role="radiogroup" aria-label="해결과제 ${t.no} 후보">
-  ${list.map((c,i)=>{ const ed = s.editCand === i, on = s.pick === i; return `<div class="card pickc ${on?'on':''}">
+function candCard(c, i, first) {
+  const s = S.s1, ed = s.editCand === i, on = s.pick === i;
+  return `<div class="card pickc ${on?'on':''}">
     ${ed ? `<div class="field"><label for="ce-name">해결과제명</label><input type="text" id="ce-name" value="${esc(c.name)}"></div>
             <div class="field"><label for="ce-content">내용</label><textarea id="ce-content">${esc(c.content)}</textarea></div>
             <div class="row"><span class="grow"></span><button class="btn" data-act="s1editNo">취소</button><button class="btn pri" data-act="s1fixEdited" data-v="${i}">고친 내용으로 고정</button></div>`
     : `<label class="pickhead"><input type="radio" name="cand" data-pick="${i}" ${on?'checked':''}>
-        <span class="grow"><b class="ttl">${esc(c.name)}</b> <span class="tag ${c.dup.verdict==='통과'?'ok':'warn'}">${c.dup.verdict==='통과'?'기출과 안 겹침':'기출과 겹침 주의'}</span>${c.check!=='걸린 항목 없음'?` <span class="tag warn">점검 주의</span>`:''}
-        <br><span class="muted">${esc(c.content)}</span></span></label>
+        <span class="grow"><b class="ttl">${esc(c.name)}</b> <span class="tag ${c.dup.verdict==='통과'?'ok':'warn'}">${c.dup.verdict==='통과'?'기출과 안 겹침':'기출과 겹칠 수 있음'}</span>${c.check!=='걸린 항목 없음'?` <span class="tag warn">점검 주의: ${esc(c.check.replace(/^[A-Z]\d+\s*/, '').split(':')[0])}</span>`:''}
+        <br><span class="muted">${esc(c.content)}</span>${c.dup.verdict!=='통과'&&c.dup.near[0]?`<br><span class="muted">가까운 기출: ${esc(c.dup.near[0][0])}</span>`:''}</span></label>
       <details class="more"><summary>${ic('list')} 자세히 보기</summary><div class="tablewrap" style="margin-top:6px"><table class="t">
         <tr><th style="width:120px">가상조직</th><td>${esc(first ? c.org : s.org)}</td></tr>
         <tr><th>역량 측정 연관성</th><td>${esc(c.device)}</td></tr>
@@ -1532,10 +1587,22 @@ function v1Task() {
         <tr><th>기출과 비교</th><td>${esc(c.dup.diff)}${c.dup.near.length?`<div class="help">${c.dup.near.map(([n,f])=>`${esc(n)} ${fileLink(f)}`).join('<br>')}</div>`:''}</td></tr>
         <tr><th>점검표</th><td>${esc(c.check)}</td></tr></table></div>
         <div class="row" style="margin-top:6px"><button class="btn sm" data-act="s1edit" data-v="${i}">${ic('edit')} 고쳐서 고정</button></div></details>`}
-  </div>`; }).join('')}</div>
+  </div>`;
+}
+function v1Task() {
+  const s = S.s1, t = s.tasks[s.taskIdx], first = s.taskIdx === 0, idx = t.cands.map((c, i) => [c, i]);
+  const ok = idx.filter(([c]) => c.dup.verdict === '통과'), risky = idx.filter(([c]) => c.dup.verdict !== '통과');
+  const pc = s.pick != null ? t.cands[s.pick] : null, warn = pc && pc.dup.verdict !== '통과' && s.warnPick === s.pick;
+  return `${tasksLine()}<p style="margin-bottom:10px">측정 역량: <b>${esc(t.comps.join(', '))}</b></p>
+  <div role="radiogroup" aria-label="해결과제 ${t.no} 후보">
+  ${ok.map(([c,i]) => candCard(c, i, first)).join('')}
+  ${risky.length?`<details class="more" ${risky.some(([,i]) => i === s.pick)?'open':''}><summary>${ic('alert')} 기출과 겹칠 수 있는 후보 ${risky.length}개</summary><div style="margin-top:8px">${risky.map(([c,i]) => candCard(c, i, first)).join('')}</div></details>`:''}
+  </div>
   ${aiBox('cands', ['환경 분야는 빼고 다시 만들어 줘','후보 2를 더 구체적으로 써 줘'], '후보에서 고칠 점을 적으세요')}
+  ${warn?`<div class="note" role="alert">${ic('alert')}<span class="grow">"${esc(pc.name)}"은(는) ${esc(pc.dup.near[0] ? pc.dup.near[0][0] : '기출')}과 겹칠 수 있습니다. 기출을 본 응시자에게 유리해질 수 있습니다. 그래도 고정할까요?</span>
+    <button class="btn sm" data-act="s1pickClear">다른 후보 고르기</button><button class="btn sm danger" data-act="s1fixForce">그래도 고정</button></div>`:''}
   <div class="row"><span class="grow"></span>${s.pick==null?`<span class="muted" id="whyp">후보를 하나 골라 주세요.</span>`:''}
-    <button class="btn pri" data-act="s1fixPick" ${s.pick==null?'disabled aria-describedby="whyp"':''}>고른 후보로 고정 ${ic('right')}</button></div>`;
+    <button class="btn pri" data-act="s1fixPick" ${s.pick==null||warn?'disabled aria-describedby="whyp"':''}>고른 후보로 고정 ${ic('right')}</button></div>`;
 }
 function v1Confirm() {
   const s = S.s1;
@@ -1569,7 +1636,7 @@ function previewHTML() {
   return `<div class="modal" role="dialog" aria-modal="true" aria-label="파일 미리 보기"><div class="mbox">
     <div class="row"><b class="grow">${ic('file')} ${esc(f)}</b><button class="btn sm" data-act="previewClose" aria-label="닫기">${ic('x')} 닫기</button></div>
     <div class="muted" style="margin:4px 0 10px">서버 위치: /data/ac-db/${folder}/${esc(f)}</div>
-    ${ok ? `<div class="lbl" style="font-size:14px">RAG로 찾은 부분</div>
+    ${ok ? `<div class="lbl" style="font-size:14px">찾은 부분</div>
       <div class="pchg"><div class="muted">2쪽 · 상황개요</div>오늘은 가상 기관의 과장으로서 회의에 참석합니다. 회의 안건은 세부 사업 가운데 3개를 고르는 것입니다.</div>
       <div class="pchg" style="margin-top:6px"><div class="muted">6쪽 · 자료 3</div>총 예산 안에서 과별 제안 사업의 비용을 비교한 표가 있습니다.</div>
       <p class="help">찾은 이유: 지금 보고 있는 후보와 과제 단위·딜레마 구조가 비슷한 부분입니다. (시안 예시)</p>
@@ -1619,7 +1686,10 @@ Object.assign(ACT, {
     s.tasks = s.cond.tasks.map((t,i) => ({ no:i+1, comps:t.comps.slice(), cands:clone(candsFor(i)), fixed:null }));
     s.pick = null;
     runLoading('해결과제 1 후보를 만드는 중…', ['서로 다른 분야 후보 5개 만들기','기출과 겹치는지 확인','점검표로 거르기'], '보통 1~2분 걸립니다.', () => { s.step = 'task'; s.taskIdx = 0; s.reached = Math.max(s.reached, 3); }); },
-  s1fixPick: () => { if (S.s1.pick != null) fixCand(S.s1.pick); },
+  s1fixPick: () => { const s = S.s1; if (s.pick == null) return; const c = s.tasks[s.taskIdx].cands[s.pick];
+    if (c.dup.verdict !== '통과' && s.warnPick !== s.pick) { s.warnPick = s.pick; render(); return; } fixCand(s.pick); },
+  s1fixForce: () => { const s = S.s1; s.warnPick = null; fixCand(s.pick); },
+  s1pickClear: () => { S.s1.pick = null; S.s1.warnPick = null; render(); },
   s1edit: el => { S.s1.editCand = +el.dataset.v; render(); },
   s1editNo: () => { S.s1.editCand = null; render(); },
   s1fix: el => fixCand(+el.dataset.v),
@@ -1673,19 +1743,39 @@ const WHOLE = [
     why:'기사가 결론을 암시하지 않게 열어 두면 토론 여지가 커집니다.' },
 ];
 Object.assign(ACT, {
+  openIssue: el => { const id = +el.dataset.v; S.openIssue = S.openIssue === id ? null : id; const i = S.issues.find(x => x.id === id); if (S.openIssue) { S.cur = i.block; S.activeIssue = id; } render(); },
+  toastUndo: () => { const u = toast.undo; $('toast').classList.add('hidden'); if (u) { u(); toast('되돌렸습니다.'); } },
+  askBlock: () => { S.scope = null; S.panel = 'chat'; S.mtab = 'side'; render(); const i = $('askIn'); i && i.focus(); },
+  loadRetry: () => { const r = S.loading && S.loading.retry; if (r) r(); },
+  loadBack: () => { S.loading = null; render(); },
   otherFix: el => { const i = S.issues.find(x => x.id === +el.dataset.v), alts = i.alts || FIX_ALTS[i.find] || [];
     const n = i.altNo || 0; if (n >= alts.length) { toast('시안에서는 이 항목의 다른 안 예시가 더 없습니다. 실제로는 AI가 다른 고친 안을 냅니다.'); return; }
-    i.fix = alts[n]; i.altNo = n + 1; render(); const c = $('iss-' + i.id); c && c.scrollIntoView({ block:'nearest' }); },
+    i.fix = alts[n]; i.altNo = n + 1; S.openIssue = i.id; render(); const c = $('iss-' + i.id); c && c.scrollIntoView({ block:'nearest' }); toast(`${n + 1}번째 다른 안을 받았습니다.`); },
   wholeEdit: () => runLoading('과제 전체를 읽고 고칠 곳을 찾는 중…', ['평가과제 전체 읽기','평가자가이드와 맞춰 보기','고칠 곳과 고친 안 정리'], '과제 크기에 따라 2~4분 걸립니다.', () => {
-    let n = 0;
+    const ids = [];
     WHOLE.forEach(w => { const b = S.blocks.find(x => x.text.includes(w.find));
-      if (b && !S.issues.some(i => i.check === 'whole' && i.find === w.find && i.status === 'open')) { S.issues.push({ ...w, block:b.id, check:'whole', id:issueSeq++, status:'open' }); n++; } });
-    S.chat.push({ t:`과제 전체를 읽고 고칠 곳 ${n}건을 제안했습니다. 점검 결과에서 하나씩 고르거나 [모두 반영]을 누르세요.` }); S.panel = 'issues'; S.mtab = 'side'; }),
-  wholeAll: el => { const list = S.issues.filter(i => i.check === 'whole' && i.status === 'open');
-    if (el.dataset.v === 'apply') { list.forEach(i => { const b = B(i.block); if (b.text.includes(i.find)) { setText(i.block, b.text.replace(i.find, i.fix), 'AI', `전체 수정 제안: “${i.find}” → “${i.fix}”`); i.status = 'applied'; } }); toast(`${list.length}건을 반영했습니다. 수정 기록에서 되돌릴 수 있습니다.`); }
-    else { list.forEach(i => i.status = 'ignored'); toast(`${list.length}건을 반영하지 않았습니다.`); }
-    render(); },
+      if (b && !S.issues.some(i => i.check === 'whole' && i.find === w.find && i.status === 'open')) { const id = issueSeq++; S.issues.push({ ...w, block:b.id, check:'whole', id, status:'open' }); ids.push(id); } });
+    if (ids.length) setTimeout(() => reviewStart(ids), 0); else toast('새로 제안할 곳이 없습니다.'); }),
+  reviewAll: () => reviewStart(S.issues.filter(i => i.status === 'open').map(i => i.id)),
+  reviewApply: () => { const r = S.review, i = S.issues.find(x => x.id === r.ids[r.idx]), b = B(i.block);
+    if (!b.text.includes(i.find)) { toast('원문이 이미 바뀌어 이 제안은 쓸 수 없습니다. 넘기거나 다른 안을 받으세요.'); return; }
+    r.applied.push({ id:i.id, block:i.block, before:b.text }); setText(i.block, b.text.replace(i.find, i.fix), 'AI', `${chk(i.check).name}: “${i.find}” → “${i.fix}”`); i.status = 'applied'; reviewNext(); },
+  reviewOther: () => { const r = S.review; ACT.otherFix({ dataset:{ v:String(r.ids[r.idx]) } }); },
+  reviewSkip: () => reviewNext(),
+  reviewEnd: () => { S.review = null; render(); },
+  reviewUndoAll: () => { const r = S.review; [...r.applied].reverse().forEach(a => { setText(a.block, a.before, '이용자', '검토 모드에서 반영한 것 되돌림'); const i = S.issues.find(x => x.id === a.id); if (i) i.status = 'open'; });
+    r.applied = []; S.review = null; render(); toast('검토 모드에서 반영한 것을 모두 되돌렸습니다.'); },
 });
+
+function reviewStart(ids) {
+  if (!ids.length) return;
+  S.review = { ids, idx:0, applied:[], done:false }; S.diff = false; S.mtab = 'doc'; reviewGo();
+}
+function reviewGo() { const r = S.review, i = S.issues.find(x => x.id === r.ids[r.idx]); S.cur = i.block; render();
+  const sp = $('rvspot'); sp && sp.scrollIntoView({ block:'center' }); const a = document.querySelector('[data-act=reviewApply]'); a && a.focus({ preventScroll:true }); }
+function reviewNext() { const r = S.review; r.idx++;
+  while (r.idx < r.ids.length && (S.issues.find(x => x.id === r.ids[r.idx]) || {}).status !== 'open') r.idx++;
+  if (r.idx >= r.ids.length) { r.done = true; render(); return; } reviewGo(); }
 
 /* 이벤트 연결 */
 document.addEventListener('click', e => {
@@ -1694,6 +1784,10 @@ document.addEventListener('click', e => {
   if (ACT[el.dataset.act]) ACT[el.dataset.act](el);
 });
 document.addEventListener('keydown', e => {
+  if (e.target.getAttribute && e.target.getAttribute('role') === 'tab' && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+    const ks = ['chat','issues','hist'], k = ks[(ks.indexOf(S.panel) + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; S.panel = k; render();
+    const t = document.querySelector(`[role=tab][data-v="${k}"]`); t && t.focus(); e.preventDefault(); return; }
+  if (S.review && !S.review.done && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && !e.target.isContentEditable && e.key === 'ArrowRight') { e.preventDefault(); ACT.reviewSkip(); return; }
   if (e.key === 'Escape') { hidePop(); if (S.preview) { S.preview = null; render(); } }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('mark.iss')) { e.preventDefault(); ACT.focusIssue(e.target); }
 });
