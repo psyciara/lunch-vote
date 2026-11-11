@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
 <title>과제 개발 포털</title>
 <!--
-  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.8)
+  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (v0.9)
   - 화면 원칙은 명세 2-1, 화면 용어는 명세 2-2를 따른다.
   - AI 응답, 음성 인식, 파일 처리는 이 파일 안의 예시 데이터로 흉내 낸다.
   - 예시 과제(한빛시 공영자전거)는 시안용으로 지어낸 내용이다. 실제 과제·양식의 내용은 넣지 않았다.
@@ -208,7 +208,7 @@
   .issue .ref { font-size:13px; color:var(--faint); margin-top:6px; display:flex; gap:6px; }
   .ask { border-top:1px solid var(--line); padding:10px; }
   .scope { font-size:13px; margin-bottom:6px; display:flex; gap:6px; align-items:center; color:var(--faint); }
-  .scope span { background:var(--accent-soft); color:var(--accent); padding:2px 8px; border-radius:6px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scope span:not(.k) { background:var(--accent-soft); color:var(--accent); padding:2px 8px; border-radius:6px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ask form { display:flex; gap:6px; }
   .hist { font-size:13px; border-bottom:1px solid var(--line); padding:10px 0; }
   .pop { position:absolute; z-index:40; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px;
@@ -298,6 +298,11 @@
   .rv { border:1px solid var(--accent); background:var(--accent-soft); border-radius:var(--radius); padding:12px 14px; margin:0 0 12px; display:grid; gap:8px; }
   .rv .sw { width:10px; height:10px; border-radius:3px; background:var(--c); display:inline-block; }
   .who i { width:10px; height:10px; border-radius:50%; background:var(--sc); display:inline-block; margin-right:6px; }
+  .scopebox { display:grid; gap:2px; }
+  .scopebox .gh { display:flex; gap:8px; align-items:center; font-size:13px; color:var(--faint); font-weight:600; margin:10px 0 2px; }
+  .scopebox label { display:flex; gap:8px; align-items:center; min-height:34px; padding:2px 4px; border-radius:6px; font-size:14px; }
+  .scopebox label:hover { background:var(--soft); }
+  .scope { flex-wrap:wrap; } .scope .k, .scope .btn { white-space:nowrap; }
   /* 스킬 파일 보기 */
   .skillv { display:grid; grid-template-columns:240px minmax(0,1fr); gap:14px; align-items:start; }
   @media (max-width:820px) { .skillv { grid-template-columns:1fr; } }
@@ -725,7 +730,7 @@ const S = {
   form:'saved', fields:clone(FORM_FIELDS), linkPptx:true, report:false,
   reqs:REPORT_ROWS.filter(r => r.req).map(r => ({ ...r, on:true })), s4:'list',
   editCheck:null, editPrompt:1, confirmDel:null, loading:null,
-  ai:{}, aiOpen:{}, openDet:{}, review:null, openIssue:null, simFail:false, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
+  ai:{}, aiOpen:{}, openDet:{}, scopeSel:null, scopeOpen:false, scopeDraft:null, review:null, openIssue:null, simFail:false, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
   proposals:[], lessonSent:false, cps:null, cpIdx:0, storyText:'', rows:clone(REPORT_ROWS),
 };
 const resetBlocks = () => { S.blocks = clone(BLOCKS0); S.base = {}; S.blocks.forEach(b => S.base[b.id] = b.text); };
@@ -899,7 +904,8 @@ function editorHTML(stage) {
     if (g !== '평가자가이드') tree += `<div class="grp">${esc(g)}</div>`;
     groups[g].forEach(x => {
       const n = open.filter(i => i.block === x.id).length, changed = x.text !== S.base[x.id];
-      tree += `<button class="it" data-act="pick" data-v="${x.id}" ${x.id===S.cur?'aria-current="true"':''}>
+      const insc = S.scopeSel && (S.scopeSel.all || S.scopeSel.ids.includes(x.id));
+      tree += `<button class="it" data-act="pick" data-v="${x.id}" ${x.id===S.cur?'aria-current="true"':''} title="Ctrl(⌘)을 누른 채 누르면 고칠 범위에 더하거나 뺍니다">${insc?`<span class="okc" title="고칠 범위">${ic('check')}</span><span class="sr">고칠 범위에 들어 있음,</span>`:''}
         ${changed?'<span class="dot"></span><span class="sr">고친 항목,</span>':''}${S.impact[x.id]?`<span class="impc">${ic('alert')}</span><span class="sr">함께 확인 필요,</span>`:''}
         <span>${esc(x.title)}</span>${n?`<span class="cnt">${n}<span class="sr">건 점검 결과</span></span>`:''}<span class="pg">${x.page?x.page+'쪽':''}</span></button>`;
     });
@@ -937,9 +943,9 @@ function editorHTML(stage) {
     </section>
     <section class="side ${S.mtab!=='side'?'mhide':''}" aria-label="채팅과 점검 결과">
       <div class="ptabs" role="tablist">${tabs.map(([k,n,i])=>`<button role="tab" data-act="panel" data-v="${k}" aria-selected="${S.panel===k}">${ic(i)}${n}</button>`).join('')}</div>
-      <div class="pbody" id="pbody" role="tabpanel">${S.panel==='chat'?chatHTML():S.panel==='issues'?issuesHTML(stage):histHTML()}</div>
+      <div class="pbody" id="pbody" role="tabpanel">${S.scopeOpen?scopePickerHTML():S.panel==='chat'?chatHTML():S.panel==='issues'?issuesHTML(stage):histHTML()}</div>
       <div class="ask">
-        <div class="scope">고칠 범위: <span>${S.scope?esc(S.scope.label):esc(b.title)}</span>${S.scope?`<button class="btn sm" data-act="clearScope">해제</button>`:''}</div>
+        <div class="scope"><span class="k">고칠 범위:</span> <span title="${esc(scopeLabel())}">${esc(scopeLabel())}</span>${S.scope||S.scopeSel?`<button class="btn sm link" data-act="clearScope">해제</button>`:''}<button class="btn sm link" data-act="scopeOpen" aria-expanded="${!!S.scopeOpen}">범위 바꾸기</button></div>
         <form data-act-submit="ask"><label for="askIn" class="sr">요청 입력</label><input type="text" id="askIn" class="grow" placeholder="요청을 적으세요 (예: 더 짧게)"><button class="btn">보내기</button></form>
       </div>
     </section>
@@ -1277,6 +1283,24 @@ function apply(iid) {
   i.status = 'applied'; S.cur = i.block; S.openIssue = null; render();
   toast('반영했습니다.', () => { setText(i.block, before, '이용자', '방금 반영한 것 되돌림'); i.status = 'open'; render(); });
 }
+const shortTitle = t => t.replace(/^(자료 \d+)\..*$/, '$1');
+function scopeLabel() {   // 명세 5-2: 고칠 범위 표시
+  if (S.scope) return S.scope.label;
+  if (S.scopeSel && S.scopeSel.all) return '과제 전체 (평가과제 + 평가자가이드)';
+  if (S.scopeSel && S.scopeSel.ids.length) { const t = S.scopeSel.ids.map(id => shortTitle(B(id).title));
+    return t.length <= 3 ? t.join(', ') : `${t.slice(0, 2).join(', ')} 외 ${t.length - 2}개`; }
+  return B(S.cur).title;
+}
+function scopePickerHTML() {
+  const sel = S.scopeDraft, groups = {};
+  S.blocks.forEach(x => (groups[x.g] = groups[x.g] || []).push(x));
+  return `<div class="lbl">고칠 범위 고르기</div>
+    <label class="switch" style="min-height:36px"><input type="checkbox" data-scopeall ${sel.all?'checked':''}> <b>과제 전체</b> <span class="muted">평가과제 + 평가자가이드</span></label>
+    <div class="scopebox" ${sel.all?'aria-disabled="true" style="opacity:.5"':''}>${Object.keys(groups).map(g => `<div class="gh"><span class="grow">${esc(g)}</span><button class="btn sm link" data-act="scopeGroup" data-v="${esc(g)}" ${sel.all?'disabled':''}>모두</button></div>
+      ${groups[g].map(x => `<label><input type="checkbox" data-scopeid="${x.id}" ${sel.ids.includes(x.id)?'checked':''} ${sel.all?'disabled':''}> ${esc(x.title)}</label>`).join('')}`).join('')}</div>
+    <div class="row" style="margin-top:10px;position:sticky;bottom:0;background:var(--card);padding-top:8px"><span class="muted grow">${sel.all?'과제 전체':`${sel.ids.length}개 고름`}</span><button class="btn sm" data-act="scopeCancel">취소</button><button class="btn sm pri" data-act="scopeApply" ${!sel.all&&!sel.ids.length?'disabled':''}>적용</button></div>`;
+}
+function longestLine(b) { return b.text.split('\n').filter(l => !/^\[|^\|/.test(l)).sort((x, y) => y.length - x.length)[0] || b.text; }
 function ask(text) {
   S.chat.push({ me:true, t:text });
   const hit = S.checks.filter(c => c.on && text.includes(c.name.slice(0,3)));
@@ -1285,7 +1309,23 @@ function ask(text) {
     // API 연결 지점: 선택한 글 + 요청을 모델에 보내 고친 안을 받는다
     S.issues.push({ id:issueSeq++, check:'chat', block:S.scope.block, find:S.scope.text, fix:S.scope.text, why:`요청: ${text}\n(시안에서는 AI 수정안 대신 원문이 들어 있습니다. 직접 고쳐 [반영]해 보세요.)`, status:'open' });
     S.chat.push({ t:'선택한 부분의 고친 안을 점검 결과에 올렸습니다.' }); S.panel = 'issues';
-  } else { const b = B(S.cur), line = b.text.split('\n').filter(l => !/^\[|^\|/.test(l)).sort((x, y) => y.length - x.length)[0] || b.text;
+  } else if (S.scopeSel && S.scopeSel.all) {
+    // API 연결 지점: 평가과제·평가자가이드 전체 + 요청을 보내 고칠 곳 여러 개를 받는다
+    runLoading('과제 전체에서 요청에 맞는 곳을 찾는 중…', ['평가과제 전체 읽기','평가자가이드와 맞춰 보기','고친 안 정리'], '과제 크기에 따라 2~4분 걸립니다.', () => {
+      const ids = [];
+      WHOLE.forEach(w => { const b = S.blocks.find(x => x.text.includes(w.find)); if (!b) return; const id = issueSeq++;
+        S.issues.push({ ...w, block:b.id, check:'chat', id, status:'open', why:`요청: ${text}\n${w.why} (시안 예시)` }); ids.push(id); });
+      S.chat.push({ t:`과제 전체에서 고칠 곳 ${ids.length}건을 찾았습니다. 하나씩 검토하세요.` });
+      setTimeout(() => reviewStart(ids), 0); });
+    return;
+  } else if (S.scopeSel && S.scopeSel.ids.length) {
+    // API 연결 지점: 고른 항목들 + 요청을 보내 항목마다 고친 안을 받는다
+    const ids = S.scopeSel.ids.map(bid => { const b = B(bid), line = longestLine(b), id = issueSeq++;
+      S.issues.push({ id, check:'chat', block:b.id, find:line, fix:line, why:`요청: ${text}\n(시안에서는 AI 수정안 대신 원문이 들어 있습니다. [다른 안 제안받기]나 직접 다듬기를 눌러 보세요.)`, status:'open' }); return id; });
+    S.chat.push({ t:`${scopeLabel()}에 대한 고친 안 ${ids.length}건을 올렸습니다. 하나씩 검토하세요.` });
+    render(); if (ids.length > 1) reviewStart(ids); else { S.panel = 'issues'; render(); }
+    return;
+  } else { const b = B(S.cur), line = longestLine(b);
     // API 연결 지점: 항목 전체 + 요청을 보내 고친 안을 받는다
     S.issues.push({ id:issueSeq++, check:'chat', block:b.id, find:line, fix:line, why:`요청: ${text}\n(시안에서는 AI 수정안 대신 원문이 들어 있습니다. 직접 고쳐 [반영]하거나 [다른 안 제안받기]를 눌러 보세요.)`, status:'open' });
     S.chat.push({ t:`"${b.title}"에 대한 고친 안을 점검 결과에 올렸습니다. 보고 반영할지 정하세요.` }); S.panel = 'issues'; }
@@ -1306,7 +1346,12 @@ const ACT = {
   cpOk: () => { S.cps[S.cpIdx].ok = true; S.ai.cp = null;
     if (S.cpIdx < S.cps.length - 1) { S.cpIdx++; render(); window.scrollTo(0,0); return; }
     runLoading('초안을 마무리하는 중…', ['평가과제 쓰기','평가자가이드 쓰기','과제와 가이드 연결하기'], '참조 과제 크기에 따라 3~5분 걸립니다.', () => { S.draft = 'ready'; }); },
-  pick: el => { S.cur = el.dataset.v; S.scope = null; S.mtab = 'doc'; render(); },
+  pick: (el, e) => {
+    if (e && (e.ctrlKey || e.metaKey)) {   // Ctrl(⌘)+클릭: 고칠 범위에 더하거나 빼기
+      const cur = S.scopeSel && !S.scopeSel.all ? S.scopeSel.ids : [S.cur], id = el.dataset.v;
+      const ids = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+      S.scope = null; S.scopeSel = ids.length ? { all:false, ids } : null; render(); toast(`고칠 범위: ${scopeLabel()}`); return; }
+    S.cur = el.dataset.v; S.scope = null; S.mtab = 'doc'; render(); },
   panel: el => { S.panel = el.dataset.v; render(); },
   mtab: el => { S.mtab = el.dataset.v; render(); },
   diff: () => { S.diff = !S.diff; render(); },
@@ -1317,7 +1362,14 @@ const ACT = {
   focusIssue: el => { const i = S.issues.find(x => x.id === +el.dataset.v); S.cur = i.block; S.activeIssue = i.id; S.openIssue = i.id; S.panel = 'issues'; S.diff = false; render();
     const c = $('iss-'+i.id); c && c.scrollIntoView({ block:'nearest' }); },
   impactOk: () => { delete S.impact[S.cur]; render(); },
-  clearScope: () => { S.scope = null; render(); },
+  clearScope: () => { S.scope = null; S.scopeSel = null; render(); },
+  scopeOpen: () => { if (S.scopeOpen) { S.scopeOpen = false; render(); return; }
+    S.scopeDraft = S.scopeSel ? clone(S.scopeSel) : { all:false, ids:[S.cur] }; S.scopeOpen = true; S.mtab = 'side'; render(); },
+  scopeCancel: () => { S.scopeOpen = false; render(); },
+  scopeApply: () => { const d = S.scopeDraft; S.scope = null; S.scopeSel = d.all || d.ids.length > 1 || d.ids[0] !== S.cur ? d : null; S.scopeOpen = false; render();
+    const i = $('askIn'); i && i.focus(); },
+  scopeGroup: el => { const g = el.dataset.v, ids = S.blocks.filter(x => x.g === g).map(x => x.id), d = S.scopeDraft;
+    d.ids = ids.every(id => d.ids.includes(id)) ? d.ids.filter(id => !ids.includes(id)) : [...new Set([...d.ids, ...ids])]; render(); },
   example: el => { const i = $('askIn'); i.value = el.dataset.v; i.focus(); },
   viewVer: el => { S.cur = S.history[+el.dataset.v-1].block; S.diff = true; S.mtab = 'doc'; render(); },
   restore: el => { const h = S.history[+el.dataset.v-1]; setText(h.block, h.before, '이용자', `${h.v}번째 수정 전으로 되돌림`); S.cur = h.block; render(); toast('되돌렸습니다.'); },
@@ -1781,7 +1833,7 @@ function reviewNext() { const r = S.review; r.idx++;
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el || (el.type === 'checkbox' && el.dataset.act !== 'diff')) return;
   if (el.tagName === 'A') e.preventDefault();
-  if (ACT[el.dataset.act]) ACT[el.dataset.act](el);
+  if (ACT[el.dataset.act]) ACT[el.dataset.act](el, e);
 });
 document.addEventListener('keydown', e => {
   if (e.target.getAttribute && e.target.getAttribute('role') === 'tab' && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
@@ -1804,6 +1856,8 @@ document.addEventListener('change', e => {
     if (k === 'n') { const n = +t.value; while (c.tasks.length < n) c.tasks.push({ comps:[] }); c.tasks.length = n; } else c[k] = t.value;
     render(); return; }
   if (t.dataset.s1q) { S.s1.answers[t.dataset.s1q] = t.value; render(); return; }
+  if (t.dataset.scopeall !== undefined) { S.scopeDraft.all = t.checked; render(); return; }
+  if (t.dataset.scopeid) { const d = S.scopeDraft, id = t.dataset.scopeid; d.ids = t.checked ? [...d.ids, id] : d.ids.filter(x => x !== id); render(); return; }
   if (t.dataset.pick) { S.s1.pick = +t.dataset.pick; render(); return; }
   if (t.dataset.slot === 'csv') { toast(`${t.files[0] ? t.files[0].name : ''}을(를) 읽었습니다. (시안) 실제로는 열 이름을 맞춰 보고 미리보기 뒤에 추가합니다.`); return; }
   if (t.dataset.slot) {
