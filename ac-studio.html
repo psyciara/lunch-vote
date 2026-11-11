@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
 <title>과제 개발 포털</title>
 <!--
-  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (버전 1.1)
+  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (버전 1.2)
   - 화면 원칙은 명세 2-2, 화면 용어는 명세 2-3을 따른다.
   - AI 응답, 음성 인식, 파일 처리는 이 파일 안의 예시 데이터로 흉내 낸다.
   - 예시 과제(한빛시 공영자전거)는 시안용으로 지어낸 내용이다. 실제 과제·양식의 내용은 넣지 않았다.
@@ -313,6 +313,14 @@
   .figpick { display:grid; gap:4px; border:2px solid transparent; border-radius:8px; padding:4px; cursor:pointer; }
   .figpick.on { border-color:var(--accent); }
   .figpick:focus-within { outline:2px solid var(--accent); }
+  .insbar { border:1px solid var(--line); background:var(--soft); border-radius:8px; padding:8px 10px; margin:6px 0; font-size:14px; }
+  .insbar .skips { margin:6px 0 0 18px; font-size:13px; color:var(--faint); } .insbar .skips li { margin:2px 0; }
+  .insat { display:flex; align-items:center; gap:8px; width:100%; min-height:28px; border:none; background:none; color:var(--faint); font-size:12px; margin:0; padding:0; }
+  .insat::after { content:''; flex:1; border-top:1px dashed var(--line); }
+  .insat span { display:inline-flex; gap:4px; align-items:center; }
+  .insat:hover, .insat:focus-visible { color:var(--accent); } .insat:hover::after, .insat:focus-visible::after { border-color:var(--accent); }
+  .figprop { border:1.5px dashed var(--accent); border-radius:8px; padding:10px; margin:6px 0; background:var(--card); display:grid; gap:4px; font-size:14px; }
+  .tblbar { display:flex; justify-content:flex-end; margin:4px 0 -2px; }
   .insmenu { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px; margin:6px 0; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
   .mbox.wide { width:min(1180px,100%); max-height:94vh; }
   .mgrid { display:grid; grid-template-columns:170px minmax(0,1fr) 270px; gap:12px; align-items:start; margin-top:10px; }
@@ -390,7 +398,7 @@ const CHECKS0 = [
   { id:'struct',name:'구성 점검',     color:'#667085', calc:true,  where:[5], on:true,
     prompt:'자료 번호가 빠지거나 겹치는지, 표지의 "총 n장" 안내와 실제 장수가 맞는지, 쪽 번호가 이어지는지 점검한다.' },
   { id:'fig', name:'그림·지도·차트 일치', color:'#c4320a', calc:true, where:[2,4,5], on:true,
-    prompt:'그림과 지도의 내용(지명, 거리, 후보지 위치, 수치)이 자료 글과 맞는지, 지도에서 원고 근거 없이 정한 항목이 확인 없이 남아 있는지, 그림에 실존 인물·로고·글자가 들어갔는지, 차트의 값·단위·제목이 원본 표와 맞는지 점검한다.' },
+    prompt:'그림과 지도의 내용(지명, 거리, 후보지 위치, 수치)이 자료 글과 맞는지, 지도에서 원고 근거 없이 정한 항목이 확인 없이 남아 있는지, 그림에 실존 인물·로고·글자가 들어갔는지, 차트의 값·단위·제목이 원본 표와 맞는지, 그림·차트가 응시자가 스스로 찾거나 계산해야 할 값(평가자가이드의 정답 근거)을 미리 보여 주는지 점검한다.' },
   { id:'guide', name:'과제-가이드 일치', color:'#15b79e', calc:true, where:[2,4,5], on:true,
     prompt:'평가자가이드가 정답 근거로 든 자료·수치가 과제에 실제로 있는지, 과제의 숫자와 가이드의 계산 답이 맞는지 점검한다.' },
 ];
@@ -467,6 +475,7 @@ const PROMPTS0 = [
   { id:1, name:'① 주제 탐색', mode:'skill', skill:'ac-topic-storymap', files:['SKILL.md','references/점검표.md','references/스토리맵_양식.md'], text:'', ver:[['v3','2026-11-02','관리자','스킬 다시 올림']] },
   { id:2, name:'② 과제 초안 (평가과제 + 평가자가이드)', mode:'skill', skill:'isomorph-ac', files:['SKILL.md','references/기법별_구성.md','scripts/pptx_build.py'], text:'', ver:[['v5','2026-11-05','관리자','가이드 동시 생성 설정']] },
   { id:3, name:'③ 검토회의 보고서', mode:'prompt', text:'녹취록에서 검토위원의 의견과 개발사의 답변을 짝지어 찾는다.\n의견마다 위치(자료 제목, 장, 인쇄 쪽), 검토위원 의견, 개선 및 반영 방향을 쓴다.\n반영 방향은 "~하겠음"으로 끝낸다. 양식에 이전 회차 내용이 있으면 그 문체와 위치 표기를 따른다.\n발언에 없는 내용은 쓰지 않는다.', ver:[['v2','2026-11-08','관리자','위치 표기 규칙 추가'],['v1','2026-11-01','관리자','처음 작성']] },
+  { id:5, name:'그림·지도·차트 (②④⑤ 공통)', mode:'skill', skill:'ac-figure', files:[], text:'', ver:[['v1','2026-11-11','관리자','처음 올림']] },
   { id:4, name:'④ 검토의견 반영', mode:'prompt', text:'수정 요청마다 해당 항목을 찾아 고친 안을 만든다.\n참고자료 저장소에서 같은 기법의 다른 과제와 가이드를 찾아 근거를 한 줄로 붙인다.\n고친 내용 때문에 바뀌어야 할 다른 항목(평가자가이드 포함)을 함께 알려 준다.', ver:[['v1','2026-11-01','관리자','처음 작성']] },
 ];
 const LIB = [
@@ -537,6 +546,15 @@ references/group-discussion.md의 기법별 구성을 따른다.
   },
 };
 // ② 확인 지점별 결과 예시 (API 연결 지점: 스킬이 ★정지에서 멈출 때 내놓는 결과)
+// 그림·지도·차트 지침: 저장소 skills/ac-figure/의 실제 내용 (요약본 아님)
+SKILL_FILES[5] = {
+ "SKILL.md": "---\nname: ac-figure\ndescription: 역량평가(AC) 과제의 자료에 넣을 그림·지도·차트를 정한다. 자료 글을 읽고 그림·지도·차트를 넣을 자리와 종류를 제안하고, 그림 장면 설명을 쓰고, 자료 글에서 지도 항목(지명·시설·후보지·도로·하천·구역)을 뽑고, 표에 맞는 차트 종류를 고른다. \"그림 넣을 곳\", \"자리 제안\", \"기사 사진\", \"위치 지도\", \"지도 초안\", \"차트로 만들어\", \"그래프로 보여 줘\" 같은 요청이거나 과제 자료에 그림·지도·차트를 새로 넣거나 고칠 때 이 스킬을 쓴다. 발주처·직급·평가 기법과 무관하게 쓴다. 과제 글 자체를 쓰거나 고치는 일은 isomorph-ac가 맡는다.\n---\n\n# 과제 그림·지도·차트\n\n과제 자료의 그림·지도·차트는 응시자가 상황을 빨리 파악하도록 돕는 장치다. 동시에 응시자가 스스로 찾거나 계산해야 할 것을 대신 보여 주면 과제의 난이도와 채점 기준이 바뀐다. 이 스킬의 모든 규칙은 이 두 가지를 함께 지키기 위한 것이다.\n\n## 언제 어느 문서를 읽나\n\n| 하는 일 | 읽을 문서 |\n|---|---|\n| 넣을 자리와 종류 제안 | references/placement.md |\n| 그림(사진·일러스트) 장면 설명 쓰기 | references/image.md |\n| 자료 글에서 지도 항목 뽑기 | references/map.md |\n| 표에 맞는 차트 종류 고르기 | references/chart.md |\n\n하는 일 하나에 문서 하나만 읽는다. 자리 제안에서 종류를 정한 뒤 실제로 만들 때 해당 문서를 읽는다.\n\n## 공통 규칙\n\n1. **정답을 미리 보여 주지 않는다.** 평가자가이드가 \"계산\", \"비교\", \"찾아냄\"으로 채점하는 값(증감률, 합계, 거리, 순위)은 그림·차트로 만들지 않는다. 가이드를 받지 못했으면 이 점을 이용자에게 알리고, 계산이 필요한 값으로 보이는 것은 제안에서 뺀 뒤 그 이유를 적는다.\n2. **원고에 있는 것만 그린다.** 원고에 근거가 없는 것을 정해야 하면 \"가정\"으로 표시하고 무엇을 정했는지 한 줄로 적는다. 이용자가 확인하기 전까지는 확정하지 않는다.\n3. **실존 대상을 쓰지 않는다.** 실존 인물, 실제 기관 로고·상표, 알아볼 수 있는 실제 장소는 넣지 않는다. 과제는 가상 기관을 다루고, 실제 대상을 아는 응시자가 유리해지기 때문이다.\n4. **그림 안에 글자를 넣지 않는다.** 이미지 생성 모델은 한글을 정확히 쓰지 못한다. 글자는 과제 지면에 쓴다. 지도·차트의 이름표는 편집기가 쓰므로 예외다.\n5. **양식을 바꾸지 않는다.** 그림 때문에 쪽 수, 자료 번호, 표지의 \"총 n장\"이 바뀌면 안 된다. 한 자료에 그림·지도·차트는 2개까지 둔다.\n6. **숫자는 계산 코드가 읽은 값을 쓴다.** 모델이 숫자를 옮겨 적다 틀리는 일을 막기 위해서다.\n\n## 결과 형식\n\n제안이든 초안이든 항목마다 다음을 한 줄씩 적는다. 포털은 이 형식으로 화면에 카드를 만든다.\n\n```\n종류: 그림 | 지도 | 차트\n위치: <자료 제목> / \"<바로 앞 문단의 첫 15자>\" 뒤\n제목: <그림 자리 제목>\n내용: <그릴 장면 / 넣을 항목 / 데이터 표와 차트 종류>\n이유: <이 자리에 필요한 까닭, 한 문장>\n가정: <원고에 근거 없이 정한 것, 없으면 \"없음\">\n```\n\n제안하지 않기로 한 곳도 이유가 분명하면 \"제안 안 함: <위치> — <이유>\"로 적는다. 이용자가 왜 빠졌는지 묻지 않아도 알 수 있게 하기 위해서다.",
+ "references/placement.md": "# 자리 제안 규칙\n\n## 순서\n1. 대상 항목의 글을 문단 단위로 읽는다. 표, 이미 있는 그림 자리(\"[그림]\", \"[차트]\")를 표시해 둔다.\n2. 아래 \"제안 조건\"에 맞는 문단을 찾는다.\n3. 공통 규칙 1(정답을 미리 보여 주지 않기)로 거른다. 평가자가이드의 채점 기준에 나오는 값과 겹치면 뺀다.\n4. 자료마다 2개를 넘으면, 이해에 더 크게 도움이 되는 것(글로만 설명된 위치 관계 > 3개 이상 숫자 비교 > 분위기 사진)을 남긴다.\n5. SKILL.md의 결과 형식으로 적는다.\n\n## 제안 조건\n\n| 종류 | 이럴 때 제안 | 이럴 때 제안하지 않음 |\n|---|---|---|\n| 차트 | 같은 기준의 숫자가 3개 이상(연도별, 지역별, 항목별) 표나 글로 나온다. | 숫자가 2개 이하. 응시자가 그 숫자로 증감률·합계를 계산하는 문항이 있다. 표가 이미 한눈에 읽힌다(행 3개 이하, 열 2개 이하). |\n| 지도 | 장소가 2곳 이상 나오고, 거리·방향·인접 관계가 판단에 쓰인다(예: 후보지 선정, 노선 조정). | 장소 이름만 나오고 위치 관계가 판단과 상관없다. 응시자가 거리를 직접 재야 하는 문항이 있다. |\n| 그림(사진) | 실제 문서라면 사진이 있을 자료다: 신문기사, 현장 보고, 민원 접수, 홍보물. | 내부 보고서, 회의록, 공문, 표지, 안내문, 평가자가이드 |\n\n## 위치 정하기\n- 그림은 그 그림이 설명하는 문단 바로 뒤에 둔다. 응시자가 글을 읽고 바로 확인하게 하기 위해서다.\n- 차트는 원본 표 바로 뒤에 둔다. 표를 지우지 않는다(표가 원본 자료이기 때문).\n- 신문기사 사진은 기사 제목·기자 줄 바로 뒤에 둔다. 실제 신문의 배치와 같게 하기 위해서다.\n\n## 이유 쓰기\n이유는 이용자가 \"넣을지 말지\"를 바로 정할 수 있게 쓴다. 원고의 구체적인 내용을 넣는다.\n- 좋은 예: \"2028~2030년 이용 건수·고장 비율이 표로만 있어 줄어드는 흐름이 바로 보이지 않음\"\n- 나쁜 예: \"가독성 향상을 위해\"",
+ "references/image.md": "# 그림 장면 설명 쓰기\n\n이미지 생성 모델에 넘길 장면 설명을 쓴다. 모델은 글자, 숫자, 실존 대상을 잘못 그리기 쉬우므로 그런 것이 들어갈 여지를 없앤다.\n\n## 쓰는 법\n- 한 문장에 장면 하나: 장소의 종류, 중심 대상, 상태, 시간·날씨.\n- 자료 글에 나온 사실만 쓴다. 예: 기사에 \"고장 난 자전거만 남아 있다\"가 있으면 \"대여소에 고장 난 자전거가 줄지어 서 있다\".\n- 사람은 뒷모습이나 멀리 있는 모습으로 쓴다. 얼굴을 알아볼 수 없게 하기 위해서다.\n- 간판, 현수막, 표지판, 화면처럼 글자가 들어갈 물건은 쓰지 않는다.\n- 느낌은 이용자가 고른 값(보도 사진 / 일러스트 / 단순한 그림)을 따른다.\n\n## 예\n- 자료 글: \"시민들은 '빌리러 가면 고장 난 자전거만 남아 있다'고 말한다.\"\n- 장면 설명: \"흐린 오후 도심 자전거 대여소, 바퀴가 빠지거나 체인이 늘어진 공영자전거 여러 대가 거치대에 줄지어 서 있다. 멀리 지나가는 시민의 뒷모습. 간판과 글자 없음.\"",
+ "references/map.md": "# 지도 항목 뽑기\n\n자료 글 전체에서 지도에 넣을 항목을 뽑아 지도 편집기의 초안을 만든다.\n\n## 뽑는 항목\n지도 편집기의 범례 항목 이름을 그대로 쓴다. 범례 항목은 관리자가 정하므로(포털 양식·구조 관리), 목록에 없는 종류가 나오면 가장 가까운 항목을 쓰고 \"가정\"에 적는다.\n\n| 범례 항목 | 자료 글의 단서 |\n|---|---|\n| 후보지 | \"후보지\", \"부지\", \"대상지\", \"A안·B안\" |\n| 주요 시설 | 역, 청사, 학교, 병원, 대여소처럼 이름이 있는 시설 |\n| 주요 도시 / 지역명 | 시·군·구·동 이름 |\n| 일반도로 / 고속도로 / 철도 / 하천 | \"○○로\", \"고속도로\", \"○호선\", \"○○천·강\" |\n| 사업 구역 경계 / 공원·녹지 / 하천·수면 / 규제·보호 구역 | \"사업 구역\", \"공원\", \"저수지\", \"보호구역·개발제한구역\" |\n\n## 위치 정하기\n- 글에 위치 관계(북쪽, 건너편, 2km 떨어진)가 있으면 그대로 따른다. 거리는 축척으로 맞춘다.\n- 위치 관계가 없으면 겹치지 않게 놓고 \"가정: 위치를 자료에 없어 정함\"으로 적는다.\n- 이름이 없는 대상(예: \"인근 하천\")에 이름을 붙이면 가정이다.\n\n## 확인할 것\n- 후보지 사이 거리, 시설까지 거리가 평가자가이드의 정답 근거라면, 지도에 거리를 적지 않는다(공통 규칙 1).\n- 결과의 \"가정\" 줄에 가정 항목을 빠짐없이 적는다. 포털은 가정 항목을 확인받기 전에는 지도를 넣지 않는다.",
+ "references/chart.md": "# 차트 종류 고르기\n\n숫자는 계산 코드가 표에서 읽은 값을 쓴다(\"410만 건\" → 값 410, 단위 \"만 건\"). 이 문서는 종류와 계열을 고르는 규칙만 다룬다.\n\n## 고르는 규칙\n\n| 데이터 | 차트 | 과제 파일에 넣는 방식 |\n|---|---|---|\n| 시간 흐름(연도·월) 한 가지 값 | 꺾은선 또는 세로 막대 | PPT 차트 |\n| 항목 비교, 이름이 긴 항목 | 가로 막대 | PPT 차트 |\n| 합계 안의 구성(예산 항목) | 누적 막대. 항목 5개 이하이고 합이 100%일 때만 원 | PPT 차트 |\n| 단위가 다른 두 값(건수와 비율) | 막대+꺾은선 | 그림(PNG) + 데이터 표 |\n\n- PPT 차트는 PowerPoint에서 값과 모양을 바로 고칠 수 있다. 검토회의 뒤 숫자가 바뀌는 일이 많으므로 PPT 차트를 먼저 고른다.\n- 막대+꺾은선은 PPT 차트로 만들 수 없어 그림으로 넣는다. 단위가 다른 두 값을 따로 차트 2개로 나누는 방법도 함께 제안한다(둘 다 PPT 차트로 넣을 수 있다).\n- 단위가 다른 값을 한 축에 섞지 않는다. 작은 값이 바닥에 붙어 보이지 않기 때문이다.\n\n## 제목과 강조\n- 제목은 표 제목을 그대로 쓴다. 결론을 담은 제목(예: \"이용 건수 급감\")은 쓰지 않는다. 해석은 응시자의 몫이다.\n- 강조(한 막대만 진하게)는 이용자가 요청할 때만 한다. 강조도 응시자의 판단을 이끈다."
+};
+
 const CP_RESULTS = {
   A1: '참조 과제 풀이 복원 결과\n- 핵심 판단 지점 1: 예산 제약 안에서 사업 조합을 고르는지\n- 핵심 판단 지점 2: 다른 과 제안의 장점을 인정하는지\n- 핵심 판단 지점 3: 원인(고장 비율)을 자료와 연결하는지\n- 난이도: 중상',
   A2: '신규 풀이 설계\n- 최적안: 정비 인력 확충 + 대여소 재배치 + 정기권 가격 조정\n- 핵심 판단 지점 1~3: 참조 과제와 같은 구조로 유지\n- 난이도: 중상',
@@ -731,6 +749,8 @@ function aiMock(id, req, v) {
       if (has(req, '3개')) r = replaceProp(`${p.skill} / SKILL.md`, get, set, [['### 3단계: 후보 5개 만들기', '### 3단계: 후보 3개 만들기'], ['후보 5개를 만든다', '후보 3개를 만든다']]);
       else if (has(req, 'sources')) r = replaceProp(`${p.skill} / SKILL.md`, get, set, [['의 유불리·시의성 점검표로 거른다.', '의 유불리·시의성 점검표로 거른다. 시의성 근거는 references/sources.md의 출처 목록에서 찾는다.']]);
       else if (has(req, 'B1')) r = replaceProp(`${p.skill} / SKILL.md`, get, set, [['### B1. 참조 과제 분석과 배정 ★정지', '### B1. 참조 과제 분석과 배정']]);
+      else if (p.id === 5 && has(req, '지명')) r = replaceProp(`${p.skill} / SKILL.md`, get, set, [['실제 대상을 아는 응시자가 유리해지기 때문이다.', '실제 대상을 아는 응시자가 유리해지기 때문이다.\n   지도에도 실제 지명을 쓰지 않는다. 실제 지역의 지리를 아는 응시자가 거리·위치를 따로 알게 되기 때문이다.']]);
+      else if (p.id === 5 && has(req, '크기')) r = replaceProp(`${p.skill} / SKILL.md`, get, set, [['가정: <원고에 근거 없이 정한 것, 없으면 "없음">', '가정: <원고에 근거 없이 정한 것, 없으면 "없음">\n크기: 반 쪽 | 한 쪽 (쪽 수가 바뀌지 않는 크기)']]);
       else if (has(req, '실존')) r = replaceProp(`${p.skill} / SKILL.md`, get, set, [['표절 시비가 생기기 때문이다.', '표절 시비가 생기기 때문이다.\n- 실존 기관명을 쓰지 않는다. 응시자가 그 기관 사정을 아는지에 따라 유불리가 생기기 때문이다.']]);
       if (r) r.lint = lintSkill(r.changes[0].after, Object.keys(S.files[p.id]), p.skill);
     } else if (p.mode === 'prompt' && has(req, '문장 끝', '구체')) {
@@ -778,7 +798,7 @@ const S = {
   form:'saved', fields:clone(FORM_FIELDS), linkPptx:true, report:false,
   reqs:REPORT_ROWS.filter(r => r.req).map(r => ({ ...r, on:true })), s4:'list',
   editCheck:null, editPrompt:1, confirmDel:null, loading:null,
-  ai:{}, aiOpen:{}, openDet:{}, figs:{}, figModal:null, imgOn:true, scopeSel:null, scopeOpen:false, scopeDraft:null, review:null, openIssue:null, simFail:false, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
+  ai:{}, aiOpen:{}, openDet:{}, figs:{}, figModal:null, imgOn:true, scopeSel:null, scopeOpen:false, scopeDraft:null, review:null, openIssue:null, simFail:false, files:clone(SKILL_FILES), fileSel:{ 1:'SKILL.md', 2:'SKILL.md', 5:'SKILL.md' }, insMode:false, insAt:null, figProps:null, figSeed:{}, figSuggestOn:true, chartCols:['#2f5bea','#e8590c','#2b8a3e','#9c36b5'], chartFont:'Pretendard', figDef:{ style:'보도 사진', ratio:'4:3' }, fileDraft:{}, promptDraft:{}, fileHist:{}, saveWarn:null, testRun:null,
   proposals:[], lessonSent:false, cps:null, cpIdx:0, storyText:'', rows:clone(REPORT_ROWS),
 };
 const resetBlocks = () => { S.blocks = clone(BLOCKS0); S.base = {}; S.blocks.forEach(b => S.base[b.id] = b.text); };
@@ -987,8 +1007,8 @@ function editorHTML(stage) {
         ${reviewBar()}
         ${S.impact[b.id]?`<div class="impact">${ic('alert')}<span class="grow"><b>함께 확인 필요</b> · ${esc(S.impact[b.id])}</span><button class="btn sm" data-act="impactOk">확인했습니다</button></div>`:''}
         <div class="title">${esc(b.title)}</div>
-        <div class="meta row"><span class="grow">${b.doc} · ${esc(b.g)}${b.page?` · ${b.page}쪽`:''}${b.sheets?` · ${b.sheets}장`:''}</span><button class="btn sm" data-act="insMenu" aria-expanded="${!!S.insMenu}" ${S.diff ? 'disabled' : ''}>${ic('image')} 그림·차트 넣기</button><button class="btn sm link" data-act="askBlock">${ic('chat')} 이 항목 고쳐 달라고 하기</button></div>
-        ${insMenuHTML()}
+        <div class="meta row"><span class="grow">${b.doc} · ${esc(b.g)}${b.page?` · ${b.page}쪽`:''}${b.sheets?` · ${b.sheets}장`:''}</span><button class="btn sm" data-act="insMode" aria-pressed="${!!S.insMode}" ${S.diff ? 'disabled title="바뀐 부분 보기를 끄면 넣을 수 있습니다"' : ''}>${ic('image')} 그림·차트 넣기</button><button class="btn sm link" data-act="askBlock">${ic('chat')} 이 항목 고쳐 달라고 하기</button></div>
+        ${insBarHTML(b)}
         <div id="docbody">${S.diff ? diffHTML(S.base[b.id], b.text) : bodyHTML(b)}</div>
       </div>
     </section>
@@ -1003,17 +1023,24 @@ function editorHTML(stage) {
   </div>`;
 }
 function bodyHTML(b) {
-  const marks = S.issues.filter(i => i.block === b.id && i.status === 'open');
-  return b.text.split('\n').map(line => {
+  const marks = S.issues.filter(i => i.block === b.id && i.status === 'open'), ls = b.text.split('\n'), ins = S.insMode && !S.diff && b.id === S.cur;
+  const props = S.figProps && !S.figProps.loading ? S.figProps.list.filter(p => p.status === 'open' && p.bid === b.id) : [];
+  const propAt = p => { let at = ls.indexOf(p.alts[p.v].anchor); if (at < 0) at = ls.length - 1; return ls[at].startsWith('|') ? tableEnd(ls, at) : at; };
+  const after = i => (ls[i].startsWith('|') && ls[i + 1] && ls[i + 1].startsWith('|')) ? ''   // 표 가운데에는 넣지 않음
+    : props.filter(p => propAt(p) === i).map(propHTML).join('') + (ins ? insAtHTML(b.id, i) : '');
+  const line1 = (line, i) => {
     if (/^\[\d+\/\d+\]/.test(line)) return `<div class="sheet">${esc(line)}</div>`;
     if (isSlot(line)) return figHTML(b.id, line);
     let h = esc(line);
     const rv = S.review && !S.review.done ? S.issues.find(x => x.id === S.review.ids[S.review.idx]) : null;
     if (rv && rv.block === b.id && h.includes(esc(rv.find))) h = h.replace(esc(rv.find), `<span id="rvspot">${diffInline(rv.find, rv.fix)}</span>`);
     marks.forEach(m => { if (rv && m.id === rv.id) return; const f = esc(m.find); if (h.includes(f)) h = h.replace(f, `<mark class="iss ${S.activeIssue===m.id?'sel':''}" style="--c:${chk(m.check).color}" data-act="focusIssue" data-v="${m.id}" tabindex="0" title="${esc(chk(m.check).name)}: 눌러서 이유 보기">${f}</mark>`); });
-    if (line.startsWith('|')) return `<table><tr>${h.split('|').slice(1,-1).map(c=>`<td>${c.trim()}</td>`).join('')}</tr></table>`;
+    if (line.startsWith('|')) {   // 표 머리 오른쪽에 [차트로 만들기]
+      const bar = (!i || !ls[i - 1].startsWith('|')) && !S.diff && b.id === S.cur ? `<div class="tblbar"><button class="btn sm" data-act="tblChart" data-v="${i}">${ic('chart')} 차트로 만들기</button></div>` : '';
+      return `${bar}<table><tr>${h.split('|').slice(1,-1).map(c=>`<td>${c.trim()}</td>`).join('')}</tr></table>`; }
     return `<p>${h || '&nbsp;'}</p>`;
-  }).join('').replace(/<\/table><table>/g,'');
+  };
+  return ((ins ? insAtHTML(b.id, -1) : '') + ls.map((line, i) => line1(line, i) + after(i)).join('')).replace(/<\/table><table>/g,'');
 }
 function diffHTML(a, b) {
   if (a === b) return `<p class="muted">초안과 비교해 바뀐 부분이 없습니다.</p>` + bodyHTML({ ...B(S.cur), text:b });
@@ -1210,7 +1237,8 @@ function aPrompts() {
   const key = isSkill ? p.id + '|' + sel : 'p' + p.id, isCode = isSkill && !!S.files[p.id] && sel.startsWith('scripts/');
   const saved = isSkill ? (S.files[p.id] || {})[sel] || '' : p.text, text = skillText(p), dirty = text !== saved;
   const examples = !isSkill ? ['문장 끝 표현 규칙을 더 구체적으로 써 줘'] : sel !== 'SKILL.md' ? ['이 문서를 더 짧게 정리해 줘']
-    : p.id === 1 ? ['후보를 5개에서 3개로 줄여 줘','4단계에 references/sources.md를 참고하라고 넣어 줘'] : ['B1 단계의 확인 지점(★정지)을 없애 줘','금지 사항에 "실존 기관명을 쓰지 않는다"를 이유와 함께 넣어 줘'];
+    : p.id === 1 ? ['후보를 5개에서 3개로 줄여 줘','4단계에 references/sources.md를 참고하라고 넣어 줘']
+    : p.id === 5 ? ['공통 규칙에 "지도에 실제 지명을 쓰지 않는다"를 이유와 함께 넣어 줘','결과 형식에 그림 크기(반 쪽 / 한 쪽) 줄을 넣어 줘'] : ['B1 단계의 확인 지점(★정지)을 없애 줘','금지 사항에 "실존 기관명을 쓰지 않는다"를 이유와 함께 넣어 줘'];
   const tree = isSkill ? (() => { let h = '', last = null;
     files.forEach(f => { const dir = f.includes('/') ? f.split('/')[0] + '/' : ''; if (dir !== last) { if (dir) h += `<div class="fd">${dir}</div>`; last = dir; }
       const d = S.fileDraft[p.id + '|' + f] !== undefined && S.fileDraft[p.id + '|' + f] !== S.files[p.id][f];
@@ -1244,6 +1272,7 @@ function aPrompts() {
 function testSummary(p, text) {
   if (p.mode === 'skill' && S.fileSel[p.id] === 'SKILL.md') {
     const stops = text.split('\n').filter(l => /★정지/.test(l)).map(l => l.replace(/^#+\s*/, '').replace(/\s*★정지.*/, ''));
+    if (p.id === 5) return [`한 자료에 그림 최대 ${(text.match(/그림·지도·차트는 (\d+)개까지/) || [])[1] || '?'}개`, text.includes('정답을 미리 보여 주지 않는다') ? '정답 값 거르기 규칙 있음' : '정답 값 거르기 규칙 없음', text.includes('실제 지명') ? '지도 실제 지명 금지' : '지도 지명 규칙 없음'];
     if (p.id === 1) return [`주제 후보 ${(text.match(/후보 (\d+)개/) || [])[1] || '?'}개를 만듦`, text.includes('sources.md') ? '시의성 근거: 출처 목록 사용' : '시의성 근거: 점검표만 사용', `확인 단계 ${stops.length}개`];
     return [`확인 단계 ${stops.length}개: ${stops.join(', ') || '없음'}`, text.includes('실존 기관명') ? '실존 기관명을 걸러 냄' : '실존 기관명 점검 없음'];
   }
@@ -1280,20 +1309,23 @@ function aChecks() {
   <button class="btn" data-act="cAdd">${ic('plus')} 점검 항목 추가</button>`;
 }
 function aForms() {
-  return `<h1>양식·구조 관리</h1><p class="lead">이용자가 확인한 보고서 양식과 과제 파일 목차가 용역별로 저장됩니다. 같은 용역의 다음 회의·다음 파일에서 다시 씁니다.</p>
+  return `<h1>양식·구조 관리</h1><p class="lead">이용자가 확인한 보고서 양식과 과제 파일 목차가 용역별로 저장됩니다. 같은 용역의 다음 회의·다음 파일에서 다시 씁니다. 그림·지도·차트의 색과 기본값도 여기서 정합니다.</p>
   <h2>보고서 양식</h2><div class="tablewrap"><table class="t"><tr><th>양식 이름</th><th>파일</th><th>칸</th><th>최근 사용</th><th></th></tr>
   <tr><td>○○시 5급 역량평가 · 과제 검토회의 결과</td><td>hwpx (hwp에서 바꿈)</td><td>8</td><td>2031-03-04</td><td><button class="btn sm" data-act="soon">칸 구성 보기</button></td></tr>
   <tr><td>△△도 4급 역량평가 · 검토위원회 회의록</td><td>hwpx</td><td>6</td><td>2030-11-20</td><td><button class="btn sm" data-act="soon">칸 구성 보기</button></td></tr></table></div>
   <h2>과제 파일 목차 규칙</h2><div class="tablewrap"><table class="t"><tr><th>용역</th><th>방향·크기</th><th>자료 표기</th><th>구분 규칙</th></tr>
   <tr><td>○○시 5급 역량평가</td><td>세로 · A4</td><td>자료 N.</td><td>구조 / 공통 자료 / 역할 간지별 구분</td></tr>
-  <tr><td>△△도 4급 역량평가</td><td>가로 · 16:9</td><td>[자료 N]</td><td>구조 / 자료 (간지 없음)</td></tr></table></div>`;
+  <tr><td>△△도 4급 역량평가</td><td>가로 · 16:9</td><td>[자료 N]</td><td>구조 / 자료 (간지 없음)</td></tr></table></div>
+  ${aFigForm()}`;
 }
 function aSettings() {
   return `<h1>설정</h1>
   <div class="card"><label class="switch"><input type="checkbox" data-bind="web" ${S.web?'checked':''}> <b>웹 검색 사용</b></label>
     <p class="help">끄면 주제 탐색의 시의성 확인과 의견 반영의 참고 조사를 사내 참고자료로만 합니다.</p></div>
   <div class="card"><label class="switch"><input type="checkbox" data-bind="imgOn" ${S.imgOn?'checked':''}> <b>그림 만들기 사용</b></label>
-    <p class="help">끄면 자료의 그림 자리에 [그림 만들기] 버튼이 나오지 않습니다. 지도 만들기는 그대로 쓸 수 있습니다.</p></div>
+    <p class="help">끄면 그림 자리에 [그림 만들기] 버튼이 나오지 않고, 그림 파일을 직접 올려야 합니다. 지도·차트 만들기는 그대로 쓸 수 있습니다(이미지 생성 모델이 필요 없음).</p></div>
+  <div class="card"><label class="switch"><input type="checkbox" data-bind="figSuggestOn" ${S.figSuggestOn?'checked':''}> <b>AI 자리 제안 사용</b></label>
+    <p class="help">켜면 편집 화면의 [그림·차트 넣기]에 [AI에게 자리 제안받기]가 나옵니다. 제안 규칙은 지침 관리의 그림·지도·차트(ac-figure)에 있습니다.</p></div>
   <div class="card"><label class="switch"><input type="checkbox" data-bind="simFail" ${S.simFail?'checked':''}> <b>시안 체험: 진행 중 실패 화면 보기</b></label>
     <p class="help">켜면 AI 작업이 두 번째 단계에서 실패한 것처럼 보여 줍니다. 실패 화면과 [다시 시도]를 확인하는 용도입니다.</p></div>
   <div class="card"><div class="lbl">이용자 권한</div><div class="tablewrap"><table class="t"><tr><th>이름</th><th>권한</th></tr>
@@ -1477,7 +1509,7 @@ const ACT = {
     p.ver.unshift([`v${+v[0].slice(1) + 1}`, new Date().toISOString().slice(0,10), '관리자', `${v[0]} 수정 되돌림`]); render(); toast('되돌렸습니다.'); },
   pTest: () => { const p = S.prompts.find(x => x.id === S.editPrompt), saved = p.mode === 'skill' ? S.files[p.id][S.fileSel[p.id]] : p.text, now = skillText(p);
     const key = p.mode === 'skill' ? p.id + '|' + S.fileSel[p.id] : 'p' + p.id, base = now === saved ? ((S.fileHist[key] || []).slice(-1)[0] ?? saved) : saved;
-    S.testRun = { input:p.id === 1 ? 'examples/settings-example.md' : p.id === 2 ? '2029 집단토론 평가과제·가이드' : '1차 검토회의 녹취록', old:testSummary(p, base), new:testSummary(p, now) }; render(); },
+    S.testRun = { input:p.id === 1 ? 'examples/settings-example.md' : p.id === 5 ? '자료 3. 운영 현황 (표 1개, 지도 자리 1개)' : p.id === 2 ? '2029 집단토론 평가과제·가이드' : '1차 검토회의 녹취록', old:testSummary(p, base), new:testSummary(p, now) }; render(); },
   fileSel: el => { S.fileSel[S.editPrompt] = el.dataset.v; S.ai.skill = null; S.saveWarn = null; S.testRun = null; render(); },
   fileRevert: () => { const p = S.prompts.find(x => x.id === S.editPrompt); if (p.mode === 'skill') delete S.fileDraft[p.id + '|' + S.fileSel[p.id]]; else delete S.promptDraft[p.id]; S.saveWarn = null; render(); toast('저장 전 변경을 취소했습니다.'); },
   propApply: el => { const x = S.proposals.find(q => q.id === +el.dataset.v), p = S.prompts.find(q => q.id === x.pid), key = x.pid + '|' + x.file;
@@ -1903,21 +1935,6 @@ function figHTML(bid, line) {
     <div class="grow"><b>${esc(f.title)}</b>${f.desc ? `<br><span class="muted">${esc(f.desc)}</span>` : ''}<br><span class="muted">${state}</span></div>
     <div class="row" style="gap:6px">${got && got.kind === 'file' ? '' : `<button class="btn sm" data-act="figOpen" data-v="${esc(k)}">${ic(kd[0])} ${got ? '다시 만들기' : kd[1]}</button>`}${tools}</div></div>`;
 }
-function insMenuHTML() {
-  if (!S.insMenu) return '';
-  return `<div class="insmenu" role="menu" aria-label="그림·차트 넣기">${['img','map','chart','file'].map(k => k === 'file'
-      ? `<label class="btn sm" role="menuitem">${ic('upload')} 파일 올리기<input type="file" data-slot="figfile" accept=".png,.jpg,.jpeg,.svg" class="sr"></label>`
-      : `<button class="btn sm" role="menuitem" data-act="slotAdd" data-v="${k}">${ic(KIND[k][0])} ${KIND[k][1]}</button>`).join('')}
-    <span class="muted">새 자리는 이 항목 끝에 생깁니다.</span></div>`;
-}
-function addSlot(kind, title) {
-  const b = B(S.cur), base = title || { img:'새 그림', map:'새 지도', chart:'새 차트' }[kind] || '새 그림';
-  let t = base, n = 2; while (b.text.split('\n').some(l => isSlot(l) && parseFig(l).title === t)) t = `${base} ${n++}`;
-  const line = kind === 'chart' ? `[차트] ${t}` : `[그림] ${t}`;
-  setText(b.id, b.text + '\n' + line, '이용자', `${KIND[kind][2]} 자리 넣음: ${t}`); S.insMenu = false;
-  return figKey(b.id, t);
-}
-
 // 시안용 예시 그림 (API 연결 지점: 사내 이미지 생성 모델)
 function mockPhoto(seed, ratio) {
   const w = 320, h = ratio === '3:4' ? 427 : ratio === '16:9' ? 180 : 240, sky = ['#c9d8e8','#e8d9c9','#d3e2d0','#d9d4e6'][seed % 4], g = ['#9aa49a','#a59c8c','#8e9aa6','#9e9a8a'][seed % 4];
@@ -1932,10 +1949,13 @@ const MAP_CATS = {
   road:{ g:'line', label:'일반도로', color:'#c9a46a', w:4 }, highway:{ g:'line', label:'고속도로', color:'#e8590c', w:6 }, rail:{ g:'line', label:'철도', color:'#495057', w:3, dash:'9 6' }, river:{ g:'line', label:'하천', color:'#74a9d8', w:10 },
   zone:{ g:'area', label:'사업 구역 경계', color:'#c2410c', fill:'none', dash:'7 5' }, park:{ g:'area', label:'공원·녹지', color:'#69a35b', fill:'#d4ebc9' }, water:{ g:'area', label:'하천·수면', color:'#74a9d8', fill:'#d1e5f5' }, protect:{ g:'area', label:'규제·보호 구역', color:'#9c36b5', fill:'#efdff5' },
 };
-const MAP_GROUPS = [['지점', ['site','fac','city','place']], ['선', ['road','highway','rail','river']], ['면', ['zone','park','water','protect']]];
+function mapGroups() {   // 관리자가 끈 범례 항목은 팔레트에서 뺀다(명세 7-2)
+  const ks = Object.keys(MAP_CATS).filter(k => !MAP_CATS[k].off);
+  return [['지점', ks.filter(k => ['pt','text'].includes(MAP_CATS[k].g))], ['선', ks.filter(k => MAP_CATS[k].g === 'line')], ['면', ks.filter(k => MAP_CATS[k].g === 'area')]];
+}
 const MW = 640, MH = 440;
-function draftMap(title) {   // API 연결 지점: 자료 글 전체 → 사내 언어 모델(지도 지침) → 항목 목록
-  return { title:title || '위치 지도', legend:true, scale:true, north:true, pxPerKm:80, seq:10, items:[
+function draftMap(title) {   // API 연결 지점: 자료 글 전체 → 사내 언어 모델(지침 ac-figure의 references/map.md) → 항목 목록
+  const m = { title:title || '위치 지도', legend:true, scale:true, north:true, pxPerKm:80, seq:10, items:[
     { id:1, cat:'river', name:'한빛천', basis:'assumed', why:'하천 이름이 자료에 없어 정함', label:true, pts:[[0,300],[160,272],[320,328],[480,288],[640,318]] },
     { id:2, cat:'road', name:'중앙로', basis:'text', label:true, pts:[[40,60],[600,400]] },
     { id:3, cat:'rail', name:'지하철 1호선', basis:'text', label:false, pts:[[120,440],[262,0]] },
@@ -1946,6 +1966,7 @@ function draftMap(title) {   // API 연결 지점: 자료 글 전체 → 사내 
     { id:8, cat:'site', name:'후보지 A', basis:'text', label:true, pts:[[305,150]] },
     { id:9, cat:'site', name:'후보지 B', basis:'text', label:true, pts:[[470,215]] },
   ] };
+  m.items = m.items.filter(x => !MAP_CATS[x.cat].off); return m;
 }
 const centroid = it => [it.pts.reduce((a, p) => a + p[0], 0) / it.pts.length, it.pts.reduce((a, p) => a + p[1], 0) / it.pts.length];
 const assumedN = m => m.items.filter(i => i.basis === 'assumed').length;
@@ -1980,7 +2001,7 @@ function renderMap(m, o) {
 function mapEdHTML() {
   const e = S.mapEd, m = e.m, sel = m.items.find(i => i.id === e.sel), nA = assumedN(m);
   const pal = `<div class="mpal" role="toolbar" aria-label="범례 팔레트"><button class="btn sm ${e.tool === 'select' ? 'pri' : ''}" data-act="mTool" data-v="select" aria-pressed="${e.tool === 'select'}">선택·이동</button>
-    ${MAP_GROUPS.map(([g, ks]) => `<div class="mgh">${g}</div>` + ks.map(k => { const c = MAP_CATS[k]; return `<button class="mtool ${e.tool === k ? 'on' : ''}" data-act="mTool" data-v="${k}" aria-pressed="${e.tool === k}"><i style="background:${c.fill && c.fill !== 'none' ? c.fill : c.color};border:1px solid ${c.color}"></i>${c.label}</button>`; }).join('')).join('')}</div>`;
+    ${mapGroups().map(([g, ks]) => `<div class="mgh">${g}</div>` + ks.map(k => { const c = MAP_CATS[k]; return `<button class="mtool ${e.tool === k ? 'on' : ''}" data-act="mTool" data-v="${k}" aria-pressed="${e.tool === k}"><i style="background:${c.fill && c.fill !== 'none' ? c.fill : c.color};border:1px solid ${c.color}"></i>${c.label}</button>`; }).join('')).join('')}</div>`;
   const hint = e.drawing ? `${MAP_CATS[e.drawing.cat].label} 그리는 중 · 점 ${e.drawing.pts.length}개. 두 번 누르거나 Enter로 마칩니다. <button class="btn sm" data-act="mDone">완료</button> <button class="btn sm" data-act="mCancel">취소</button>`
     : e.tool === 'select' ? '항목을 눌러 고르고 끌어서 옮깁니다. 선·면은 흰 점을 끌어 모양을 고칩니다.'
     : `${MAP_CATS[e.tool].label}: ${['line','area'].includes(MAP_CATS[e.tool].g) ? '지도 위를 차례로 눌러 점을 찍습니다.' : '지도 위를 누르면 놓입니다.'}`;
@@ -2068,7 +2089,7 @@ function chartFromTable(t) {
   return { type:'bar', title:t.name.split(' · ').pop(), head:t.head.slice(), rows:t.rows.map(r => r.map((c, j) => j && numeric[j] ? String(numOf(c)) : c)), units, series:[numeric.indexOf(true)], line:null, hi:null, src:t.name };
 }
 function renderChart(c) {
-  const W = 480, H = 300, pl = 48, pr = 48, pt = 58, pb = 40, iw = W - pl - pr, ih = H - pt - pb, cats = c.rows.map(r => r[0]), cols = ['#2f5bea','#e8590c','#2b8a3e','#9c36b5'];
+  const W = 480, H = 300, pl = 48, pr = 48, pt = 58, pb = 40, iw = W - pl - pr, ih = H - pt - pb, cats = c.rows.map(r => r[0]), cols = S.chartCols;
   const ser = c.series.filter(j => j > 0), val = (r, j) => +r[j] || 0;
   let body = '';
   if (!ser.length || !c.rows.length) return `<svg viewBox="0 0 ${W} ${H}" width="100%"><rect width="${W}" height="${H}" fill="#fff"/><text x="${W / 2}" y="${H / 2}" text-anchor="middle" font-size="13" fill="#5f6b7c">보여 줄 값을 고르세요</text></svg>`;
@@ -2090,7 +2111,7 @@ function renderChart(c) {
       lineSer.forEach((j, k) => { const pts = c.rows.map((r, i) => [pl + i * bw + bw / 2, yL(val(r, j))]), col = cols[(t === 'combo' ? 1 : k) % 4];
         body += `<path d="${pts.map((q, i) => (i ? 'L' : 'M') + q[0] + ' ' + q[1]).join('')}" fill="none" stroke="${col}" stroke-width="3"/>` + pts.map((q, i) => `<circle cx="${q[0]}" cy="${q[1]}" r="4" fill="${col}"/><text x="${q[0]}" y="${q[1] - 9}" text-anchor="middle" font-size="11" font-weight="600" fill="${col}" stroke="#fff" stroke-width="3" paint-order="stroke">${val(c.rows[i], j)}${c.units[j] === '%' ? '%' : ''}</text>`).join(''); }); }
     body += ser.map((j, k) => `<rect x="${pl + k * 120}" y="${H - 14}" width="12" height="10" fill="${cols[(t === 'combo' && k === 1) ? 1 : k]}"/><text x="${pl + k * 120 + 16}" y="${H - 5}" font-size="11">${esc(c.head[j])}${c.units[j] ? ` (${esc(c.units[j])})` : ''}</text>`).join(''); }
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(c.title)}" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"><rect width="${W}" height="${H}" fill="#fff"/><text x="${W / 2}" y="22" text-anchor="middle" font-size="14" font-weight="700">${esc(c.title)}</text>${body}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(c.title)}" xmlns="http://www.w3.org/2000/svg" font-family="'${S.chartFont}', Pretendard, 'Malgun Gothic', sans-serif"><rect width="${W}" height="${H}" fill="#fff"/><text x="${W / 2}" y="22" text-anchor="middle" font-size="14" font-weight="700">${esc(c.title)}</text>${body}</svg>`;
 }
 function chartEdHTML() {
   const e = S.chartEd, c = e.c, tables = projectTables(), native = c.type !== 'combo';
@@ -2135,10 +2156,12 @@ function figModalHTML() {
 function openFig(k) {
   const [bid, title] = k.split('|'), line = B(bid).text.split('\n').find(l => isSlot(l) && parseFig(l).title === title), f = parseFig(line), got = S.figs[k];
   S.ai.map = null; S.ai.chart = null;
-  S.figModal = { key:k, f, step:'form', style:'보도 사진', ratio:'4:3', pick:null, round:0, desc:f.desc ? `${f.desc}. 흐린 오후, 사람 얼굴은 알아볼 수 없게.` : f.title };
+  S.figModal = { key:k, f, step:'form', style:S.figDef.style, ratio:S.figDef.ratio, pick:null, round:0, desc:f.desc ? `${f.desc}. 흐린 오후, 사람 얼굴은 알아볼 수 없게.` : f.title };
   if (f.kind === 'map' && got) { S.mapEd = { m:clone(got.map), tool:'select', sel:null, drawing:null, tab:'list', undo:[], redo:[], ok:true }; S.figModal.step = 'edit'; }
-  if (f.kind === 'chart') { const tbl = projectTables(), own = tbl.find(t => t.block === bid) || tbl[0];
-    S.chartEd = { c:got ? clone(got.chart) : own ? chartFromTable(own) : { type:'bar', title, head:['구분','값'], rows:[['가','0']], units:['',''], series:[1], src:'manual', hi:null } };
+  if (f.kind === 'chart') { const tbl = projectTables(), seed = S.figSeed[k] || {}, own = (seed.table && tbl.find(t => t.name === seed.table)) || tbl.find(t => t.block === bid) || tbl[0];
+    const fresh = seed.rows ? { type:seed.type || 'bar', title, head:seed.head, rows:seed.rows, units:seed.units, series:[1], src:'manual', hi:null }   // AI 자리 제안이 글에서 읽은 숫자
+      : own ? Object.assign(chartFromTable(own), seed.series ? { series:seed.series } : {}, seed.type ? { type:seed.type } : {}, seed.series ? { title } : {}) : { type:'bar', title, head:['구분','값'], rows:[['가','0']], units:['',''], series:[1], src:'manual', hi:null };
+    S.chartEd = { c:got ? clone(got.chart) : fresh };
     if (!got && title.startsWith('새 차트')) S.chartEd.c.title = S.chartEd.c.title || title; }
   render();
 }
@@ -2159,8 +2182,6 @@ Object.assign(ACT, {
     else S.figs[m.key] = { kind:'img', svg:mockPhoto(m.pick + (m.round || 0) * 4, m.ratio), style:m.style };
     S.figModal = null; S.mapEd = null; S.chartEd = null; S.ai.map = null; S.ai.chart = null; render();
     toast(k === 'map' ? '지도를 넣었습니다. 편집 내용도 함께 저장했습니다.' : k === 'chart' ? '차트를 넣었습니다.' : '그림을 넣었습니다.'); },
-  insMenu: () => { S.insMenu = !S.insMenu; render(); const f = document.querySelector('.insmenu [role=menuitem]'); f && f.focus(); },
-  slotAdd: el => { const k = addSlot(el.dataset.v); render(); openFig(k); },
   slotMove: el => { const [bid, title] = el.dataset.v.split('|'), b = B(bid), ls = b.text.split('\n'), i = ls.findIndex(l => isSlot(l) && parseFig(l).title === title), j = i + +el.dataset.d;
     if (i < 0 || j < 0 || j >= ls.length) return; [ls[i], ls[j]] = [ls[j], ls[i]]; setText(bid, ls.join('\n'), '이용자', `그림 자리 옮김: ${title}`); render(); },
   slotDel: el => { const [bid, title] = el.dataset.v.split('|'), b = B(bid), before = b.text;
@@ -2188,6 +2209,135 @@ Object.assign(ACT, {
   cAddCol: () => { const c = S.chartEd.c; c.head.push('새 값'); c.units.push(''); c.rows.forEach(r => r.push('0')); render(); },
 });
 
+/* ===== 넣을 곳 고르기 · 표에서 차트 · AI 자리 제안 (명세 5-7) ===== */
+// 넣을 곳 고르기를 켜면 문단 사이마다 [+ 여기에 넣기]가 나온다. 마우스를 올려야 보이는 버튼은 쓰지 않는다(처음 쓰는 사람, 휴대폰).
+function insBarHTML(b) {
+  if (!S.insMode || S.diff) return '';
+  const fp = S.figProps, here = fp ? fp.list.filter(p => p.status === 'open' && p.bid === b.id) : [], other = fp ? fp.list.filter(p => p.status === 'open' && p.bid !== b.id) : [];
+  const otherBlocks = [...new Set(other.map(p => p.bid))];
+  return `<div class="insbar" role="region" aria-label="그림·차트 넣기">
+    <div class="row"><span class="grow">${ic('image')} 넣을 곳의 <b>[+ 여기에 넣기]</b>를 누르세요.</span>
+      ${S.figSuggestOn ? `<button class="btn sm" data-act="figSuggest" ${fp && fp.loading ? 'disabled' : ''}>${ic('chat')} AI에게 자리 제안받기</button>` : ''}<button class="btn sm" data-act="insDone">마침</button></div>
+    ${fp && fp.loading ? `<p class="muted" aria-busy="true"><span class="spin"></span> ${esc(fp.scope)}에서 그림·지도·차트를 넣을 곳을 찾는 중…</p>` : ''}
+    ${fp && !fp.loading ? `<div class="row" style="margin-top:6px"><span class="grow muted">AI 제안: ${esc(fp.scope)} · ${here.length ? `이 항목 ${here.length}개` : '이 항목에는 제안 없음'}${otherBlocks.length ? ` · 다른 항목 ${other.length}개` : ''}</span>
+      ${here.length + other.length > 1 ? `<button class="btn sm" data-act="propAll">${ic('check')} 모두 반영</button>` : ''}${here.length + other.length ? `<button class="btn sm" data-act="propNone">모두 반영 안 함</button>` : ''}</div>
+      ${otherBlocks.length ? `<div class="row" style="margin-top:4px">${otherBlocks.map(id => `<button class="btn sm link" data-act="pick" data-v="${id}">${esc(B(id).title)} (${other.filter(p => p.bid === id).length})</button>`).join('')}</div>` : ''}
+      ${!here.length && !other.length && !fp.skipped.length ? `<p class="muted">넣을 곳을 찾지 못했습니다. 지금 그림이 충분하거나, 숫자·위치 설명이 적은 항목입니다.</p>` : ''}
+      ${fp.skipped.length ? `<details class="more"><summary>제안하지 않은 곳 ${fp.skipped.length}곳과 이유</summary><ul class="skips">${fp.skipped.map(x => `<li><b>${esc(B(x.bid).title)}</b> · ${esc(x.what)}: ${esc(x.why)}</li>`).join('')}</ul></details>` : ''}` : ''}
+  </div>`;
+}
+function insAtHTML(bid, i) {
+  if (S.insAt && S.insAt.bid === bid && S.insAt.i === i) return `<div class="insmenu" role="menu" aria-label="여기에 넣을 것">${['img','map','chart','file'].map(k => k === 'file'
+      ? `<label class="btn sm" role="menuitem">${ic('upload')} 파일 올리기<input type="file" data-slot="figfile" accept=".png,.jpg,.jpeg,.svg" class="sr"></label>`
+      : `<button class="btn sm" role="menuitem" data-act="slotAdd" data-v="${k}">${ic(KIND[k][0])} ${KIND[k][1]}</button>`).join('')}<button class="btn sm link" data-act="insAtClose">취소</button></div>`;
+  return `<button class="insat" data-act="insAt" data-v="${i}"><span>${ic('plus')} 여기에 넣기</span></button>`;
+}
+function addSlot(kind, title, at, desc) {   // at: 이 줄 번호 뒤에 넣음(-1이면 맨 앞, 없으면 맨 끝)
+  const b = B(S.cur), base = title || { img:'새 그림', map:'새 지도', chart:'새 차트' }[kind] || '새 그림', ls = b.text.split('\n');
+  let t = base, n = 2; while (ls.some(l => isSlot(l) && parseFig(l).title === t)) t = `${base} ${n++}`;
+  const line = kind === 'chart' ? `[차트] ${t}` : `[그림] ${t}${desc ? ': ' + desc : ''}`, pos = at === undefined ? ls.length : at + 1;
+  ls.splice(pos, 0, line); setText(b.id, ls.join('\n'), '이용자', `${KIND[kind][2]} 자리 넣음: ${t}`);
+  S.insAt = null; S.insMode = false;
+  return figKey(b.id, t);
+}
+function tableEnd(ls, i) { while (i + 1 < ls.length && ls[i + 1].startsWith('|')) i++; return i; }
+function tableAt(bid, i) {   // i번째 줄에서 시작하는 표
+  const ls = B(bid).text.split('\n'), head = ls[i].split('|').slice(1, -1).map(c => c.trim()).join('|');
+  return projectTables().find(t => t.block === bid && t.head.join('|') === head);
+}
+
+// AI 자리 제안 (API 연결 지점: 사내 언어 모델 + 지침 ac-figure의 references/placement.md). 시안은 같은 규칙을 간단한 코드로 흉내 낸다.
+function guideMentions(word) { return S.blocks.filter(b => b.doc === '평가자가이드').map(b => b.text).join('\n').split('\n').find(l => l.includes(word)); }
+function suggestFigs(ids) {
+  const list = [], skipped = []; let seq = 0;
+  const allText = S.blocks.filter(b => b.doc === '평가과제').map(b => b.text).join('\n'), hasMap = S.blocks.some(b => b.text.split('\n').some(l => isSlot(l) && parseFig(l).kind === 'map'));
+  ids.map(B).forEach(b => {
+    if (b.doc === '평가자가이드') { skipped.push({ bid:b.id, what:'항목 전체', why:'평가자가이드에는 그림을 넣지 않습니다.' }); return; }
+    if (b.g === '구조') return;   // 표지·안내문·가상조직은 그림을 넣는 자료가 아님
+    const ls = b.text.split('\n'), room = 2 - ls.filter(isSlot).length, alts = [];
+    if (room <= 0) { skipped.push({ bid:b.id, what:'항목 전체', why:'이미 그림·차트가 2개 있습니다. 더 넣으면 쪽 수가 바뀔 수 있습니다.' }); return; }
+    // 1) 표 → 차트: 같은 기준의 숫자 3개 이상. 가이드가 채점하는 값은 빼고 이유를 남김
+    ls.forEach((l, i) => { if (!l.startsWith('|') || (i && ls[i - 1].startsWith('|'))) return;
+      const t = tableAt(b.id, i), end = tableEnd(ls, i); if (!t || t.rows.length < 3) return;
+      if (ls[end + 1] && /^\[차트\]/.test(ls[end + 1])) return;
+      t.head.forEach((h, j) => { if (!j || !t.rows.every(r => numOf(r[j]) !== null)) return;
+        const g = guideMentions(h);
+        if (g) { skipped.push({ bid:b.id, what:`표의 "${h}"`, why:`평가자가이드가 이 값으로 채점합니다("${g.replace(/^·\s*/, '').slice(0, 40)}…"). 차트로 먼저 보여 주면 응시자가 판단할 거리가 줄어듭니다.` }); return; }
+        const kind = /연도|년|월/.test(t.head[0]) ? '세로 막대' : '가로 막대';
+        alts.push({ kind:'chart', anchor:ls[end], title:`${t.rows[0][0]}~${t.rows[t.rows.length - 1][0]} ${h}`, desc:`${t.name.split(' · ').pop()} 표의 "${h}" · ${kind} · PPT에서 고칠 수 있는 차트`,
+          why:`${t.rows.length}개 ${t.head[0]}의 ${h}가 표로만 있어 흐름이 바로 보이지 않습니다.`, seed:{ table:t.name, series:[j], type:kind === '세로 막대' ? 'bar' : 'hbar' } }); }); });
+    // 2) 구성 비율 문장 → 가로 막대 ("총 48억 원: 운영 30억 원, 정비 12억 원, ...")
+    ls.forEach(l => { const m = l.match(/^(.+?):\s*(.+)$/); if (!m) return; const parts = m[2].split(',').map(x => x.trim().match(/^(\S+)\s+([\d.]+)\s*(\S+(?:\s원)?)/)).filter(Boolean);
+      if (parts.length >= 3 && !guideMentions(parts[0][1])) alts.push({ kind:'chart', anchor:l, title:m[1].replace(/^총\s*/, '').replace(/\s*[\d.,]+\s*\S*\s*원?$/, '').trim() + ' 구성', desc:`${parts.map(p => p[1]).join('·')} · 가로 막대 · PPT에서 고칠 수 있는 차트`,
+        why:`항목 ${parts.length}개의 금액이 한 문장에 이어져 있어 크기 차이가 바로 보이지 않습니다.`, seed:{ rows:parts.map(p => [p[1], p[2]]), head:['항목', '금액'], units:['', parts[0][3]], type:'hbar' } }); });
+    // 3) 실제 문서라면 사진이 있을 자료(기사·민원·현장)
+    if (/신문|기사|민원|현장/.test(b.title) && !ls.some(l => isSlot(l) && parseFig(l).kind === 'img'))
+      alts.unshift({ kind:'img', anchor:ls[Math.min(1, ls.length - 1)], title:'기사 사진', desc:'기사 내용 속 현장 모습(사람 얼굴·글자 없음)', why:'실제 신문기사라면 제목 아래에 사진이 있습니다.' });
+    // 4) 위치 관계가 판단에 쓰이는 장소 2곳 이상
+    const places = (b.text.match(/[가-힣A-Z]+(역|후보지|대여소|공원|천)/g) || []);
+    if (places.length >= 2 || /주변으로 옮긴다|떨어진|인접/.test(b.text)) {
+      if (hasMap) skipped.push({ bid:b.id, what:'위치 지도', why:'같은 장소를 다룬 지도가 이미 있습니다(자료 3). 그 지도를 함께 보도록 글에 "자료 3 지도 참고"를 넣는 방법을 권합니다.' });
+      else alts.push({ kind:'map', anchor:ls[ls.length - 1], title:'위치 지도', desc:places.slice(0, 4).join(', '), why:'장소 사이의 위치 관계가 판단에 쓰이는데 글로만 설명되어 있습니다.' }); }
+    if (alts.length) list.push({ id:++seq, bid:b.id, alts, v:0, status:'open' });
+  });
+  return { list, skipped };
+}
+function propHTML(p) {
+  const a = p.alts[p.v], kd = KIND[a.kind];
+  return `<div class="figprop" role="group" aria-label="AI 제안 자리: ${esc(a.title)}">
+    <div class="row"><span class="tag blue">AI 제안</span><b class="grow">${ic(kd[0])} ${kd[2]} · ${esc(a.title)}</b>${p.alts.length > 1 ? `<span class="muted">안 ${p.v + 1} / ${p.alts.length}</span>` : ''}</div>
+    <div class="muted">${esc(a.desc)}</div><div><b>이유</b> ${esc(a.why)}</div>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-act="propApply1" data-v="${p.id}">${ic('check')} 반영</button>
+      <button class="btn sm" data-act="propAlt" data-v="${p.id}" ${p.alts.length > 1 ? '' : 'disabled title="다른 안이 없습니다"'}>${ic('history')} 다른 안 제안받기</button><button class="btn sm" data-act="propSkip" data-v="${p.id}">반영 안 함</button></div></div>`;
+}
+function applyProp(p) {
+  const a = p.alts[p.v], b = B(p.bid), ls = b.text.split('\n'); let at = ls.indexOf(a.anchor); if (at < 0) at = ls.length - 1;
+  if (ls[at].startsWith('|')) at = tableEnd(ls, at);
+  const cur = S.cur; S.cur = p.bid; const k = addSlot(a.kind, a.title, at, a.kind === 'chart' ? '' : a.desc); S.cur = cur;
+  if (a.seed) S.figSeed[k] = a.seed; p.status = 'done'; return k;
+}
+Object.assign(ACT, {
+  insMode: () => { S.insMode = !S.insMode; S.insAt = null; render(); const f = document.querySelector(S.insMode ? '.insat' : '[data-act=insMode]'); f && f.focus(); },
+  insDone: () => { S.insMode = false; S.insAt = null; render(); const f = document.querySelector('[data-act=insMode]'); f && f.focus(); },
+  insAt: el => { S.insAt = { bid:S.cur, i:+el.dataset.v }; render(); const f = document.querySelector('.insmenu [role=menuitem]'); f && f.focus(); },
+  insAtClose: () => { S.insAt = null; render(); },
+  slotAdd: el => { const at = S.insAt && S.insAt.bid === S.cur ? S.insAt.i : undefined, k = addSlot(el.dataset.v, undefined, at); render(); openFig(k); },
+  tblChart: el => { const i = +el.dataset.v, t = tableAt(S.cur, i), ls = B(S.cur).text.split('\n'); if (!t) return;
+    const k = addSlot('chart', t.name.split(' · ').pop(), tableEnd(ls, i)); S.figSeed[k] = { table:t.name }; render(); openFig(k); },
+  figSuggest: () => { const ids = S.scopeSel ? (S.scopeSel.all ? S.blocks.filter(b => b.doc === '평가과제').map(b => b.id) : S.scopeSel.ids) : [S.cur];
+    S.figProps = { loading:true, scope:S.scopeSel ? scopeLabel() : B(S.cur).title, list:[], skipped:[] }; render(); $('live').textContent = '넣을 곳을 찾는 중입니다.';
+    setTimeout(() => { const r = suggestFigs(ids); Object.assign(S.figProps, r, { loading:false }); render();
+      $('live').textContent = `제안 ${r.list.length}개, 제안하지 않은 곳 ${r.skipped.length}곳`; const f = document.querySelector('.figprop button'); f && f.focus(); }, 600); },
+  propApply1: el => { const p = S.figProps.list.find(x => x.id === +el.dataset.v), before = B(p.bid).text; applyProp(p); S.insMode = true; render();
+    toast('그림 자리를 넣었습니다. 카드의 [만들기]로 이어서 만듭니다.', () => { setText(p.bid, before, '이용자', 'AI 제안 자리 되돌림'); p.status = 'open'; render(); }); },
+  propAlt: el => { const p = S.figProps.list.find(x => x.id === +el.dataset.v); p.v = (p.v + 1) % p.alts.length; render(); },
+  propSkip: el => { S.figProps.list.find(x => x.id === +el.dataset.v).status = 'skip'; render(); },
+  propAll: () => { const open = S.figProps.list.filter(p => p.status === 'open'), before = {}; open.forEach(p => { before[p.bid] = before[p.bid] ?? B(p.bid).text; applyProp(p); }); S.insMode = true; render();
+    toast(`그림 자리 ${open.length}개를 넣었습니다.`, () => { Object.entries(before).forEach(([id, t]) => setText(id, t, '이용자', 'AI 제안 자리 되돌림')); open.forEach(p => p.status = 'open'); render(); }); },
+  propNone: () => { S.figProps.list.forEach(p => { if (p.status === 'open') p.status = 'skip'; }); render(); },
+});
+
+/* ===== 관리자: 그림·지도·차트 양식 (명세 7-2) ===== */
+const G_NAME = { pt:'지점', text:'지점(글자)', line:'선', area:'면' };
+function aFigForm() {
+  return `<h2>그림·지도·차트 양식</h2><p class="help">모양(색, 글꼴, 기본값)은 여기서, 그리는 규칙은 지침 관리의 <b>그림·지도·차트(ac-figure)</b>에서 정합니다. 바꾼 값은 새로 만드는 것부터 적용되고, 이미 넣은 것은 [다시 만들기]를 해야 바뀝니다.</p>
+  <div class="card"><div class="lbl">지도 범례 항목</div><div class="tablewrap"><table class="t"><tr><th>종류</th><th>이름</th><th>색</th><th>사용</th></tr>
+    ${Object.entries(MAP_CATS).map(([k, c]) => `<tr><td>${c.custom ? `<select data-mc="${k}" data-k="g" aria-label="${esc(c.label)} 종류">${['pt','line','area'].map(g => `<option value="${g}" ${c.g === g ? 'selected' : ''}>${G_NAME[g]}</option>`).join('')}</select>` : G_NAME[c.g]}</td>
+      <td><input type="text" data-mc="${k}" data-k="label" value="${esc(c.label)}" aria-label="범례 이름"></td><td><input type="color" data-mc="${k}" data-k="color" value="${c.color}" aria-label="${esc(c.label)} 색"></td>
+      <td><label class="switch"><input type="checkbox" data-mc="${k}" data-k="on" ${c.off ? '' : 'checked'}><span class="sr">${esc(c.label)}</span> 사용</label></td></tr>`).join('')}</table></div>
+    <button class="btn sm" data-act="mcAdd" style="margin-top:8px">${ic('plus')} 범례 항목 추가</button>
+    <p class="help">끈 항목은 지도 편집기 팔레트와 AI 지도 초안에서 빠집니다. 이미 그린 항목은 남습니다.</p></div>
+  <div class="card"><div class="lbl">차트</div><div class="row">${S.chartCols.map((c, i) => `<label class="switch">계열 ${i + 1} <input type="color" data-cc="${i}" value="${c}"></label>`).join('')}</div>
+    <div class="field" style="margin-top:10px"><label for="chfont">글꼴</label><select id="chfont" data-bind="chartFont">${['Pretendard','맑은 고딕','나눔고딕','함초롬바탕'].map(f => `<option ${S.chartFont === f ? 'selected' : ''}>${f}</option>`).join('')}</select><div class="help">과제 파일과 같은 글꼴을 고르세요. PPT 차트에도 이 글꼴이 들어갑니다.</div></div>
+    <div class="cprev" style="max-width:420px">${renderChart({ type:'bar', title:'미리보기', head:['연도','값 1','값 2'], rows:[['2028','4','3'],['2029','3','4'],['2030','2','5']], units:['','',''], series:[1,2], hi:null })}</div></div>
+  <div class="card"><div class="lbl">그림 기본값</div><div class="row" style="gap:16px">
+    <div class="field"><label for="fdst">기본 느낌</label><select id="fdst" data-fd="style">${['보도 사진','일러스트','단순한 그림'].map(v => `<option ${S.figDef.style === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+    <div class="field"><label for="fdrt">기본 비율</label><select id="fdrt" data-fd="ratio">${['4:3','3:4','16:9'].map(v => `<option ${S.figDef.ratio === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div></div>`;
+}
+Object.assign(ACT, {
+  mcAdd: () => { const k = 'u' + Date.now().toString(36); MAP_CATS[k] = { g:'pt', label:'새 항목', color:'#667085', custom:true }; render(); const f = document.querySelector(`[data-mc="${k}"][data-k=label]`); f && f.focus(); },
+});
+
 /* 이벤트 연결 */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el || (el.type === 'checkbox' && el.dataset.act !== 'diff')) return;
@@ -2200,7 +2350,7 @@ document.addEventListener('keydown', e => {
     const ks = ['chat','issues','hist'], k = ks[(ks.indexOf(S.panel) + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; S.panel = k; render();
     const t = document.querySelector(`[role=tab][data-v="${k}"]`); t && t.focus(); e.preventDefault(); return; }
   if (S.review && !S.review.done && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && !e.target.isContentEditable && e.key === 'ArrowRight') { e.preventDefault(); ACT.reviewSkip(); return; }
-  if (e.key === 'Escape') { hidePop(); if (S.preview) { S.preview = null; render(); } if (S.figModal) ACT.figClose(); else if (S.insMenu) { S.insMenu = false; render(); } }
+  if (e.key === 'Escape') { hidePop(); if (S.preview) { S.preview = null; render(); } if (S.figModal) ACT.figClose(); else if (S.insAt) { S.insAt = null; render(); } else if (S.insMode) ACT.insDone(); }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('mark.iss')) { e.preventDefault(); ACT.focusIssue(e.target); }
 });
 document.addEventListener('submit', e => {
@@ -2219,6 +2369,12 @@ document.addEventListener('change', e => {
   if (t.dataset.scopeall !== undefined) { S.scopeDraft.all = t.checked; render(); return; }
   if (t.dataset.scopeid) { const d = S.scopeDraft, id = t.dataset.scopeid; d.ids = t.checked ? [...d.ids, id] : d.ids.filter(x => x !== id); render(); return; }
   if (t.dataset.figpick) { S.figModal.pick = +t.dataset.figpick; render(); return; }
+  if (t.dataset.mc) { const c = MAP_CATS[t.dataset.mc], k = t.dataset.k;
+    if (k === 'on') c.off = !t.checked; else if (k === 'g') { c.g = t.value; c.w = 4; c.fill = t.value === 'area' ? c.color + '40' : undefined; }
+    else { c[k] = t.value; if (k === 'color' && c.g === 'area' && c.fill !== 'none') c.fill = t.value + '40'; }
+    if (k !== 'label') render(); return; }
+  if (t.dataset.cc) { S.chartCols[+t.dataset.cc] = t.value; render(); return; }
+  if (t.dataset.fd) { S.figDef[t.dataset.fd] = t.value; render(); return; }
   if (t.dataset.mok !== undefined) { S.mapEd.ok = t.checked; render(); return; }
   if (t.dataset.m) { const e2 = S.mapEd, it = e2.m.items.find(i => i.id === e2.sel); if (!it) return; mPush(); const k = t.dataset.m;
     it[k] = t.type === 'checkbox' ? t.checked : t.value; if (k === 'basis' && t.value === 'assumed') e2.ok = false; render(); return; }
@@ -2229,7 +2385,7 @@ document.addEventListener('change', e => {
   if (t.dataset.cser) { const c3 = S.chartEd.c, j = +t.dataset.cser; c3.series = t.checked ? [...c3.series, j].sort((x, y) => x - y) : c3.series.filter(x => x !== j); render(); return; }
   if (t.dataset.ctitle !== undefined) { S.chartEd.c.title = t.value; render(); return; }
   if (t.dataset.slot === 'figfile') { const f = t.files[0]; if (!f) return; const rd = new FileReader();
-    rd.onload = () => { const k = addSlot('img', f.name.replace(/\.[^.]+$/, '')); S.figs[k] = { kind:'file', svg:`<img src="${rd.result}" alt="${esc(f.name)}" style="width:100%;display:block">` }; render(); toast(`${f.name}을(를) 넣었습니다.`); };
+    rd.onload = () => { const k = addSlot('img', f.name.replace(/\.[^.]+$/, ''), S.insAt && S.insAt.bid === S.cur ? S.insAt.i : undefined); S.figs[k] = { kind:'file', svg:`<img src="${rd.result}" alt="${esc(f.name)}" style="width:100%;display:block">` }; render(); toast(`${f.name}을(를) 넣었습니다.`); };
     rd.readAsDataURL(f); return; }
   if (t.dataset.slot === 'mapjson') { const f = t.files[0]; if (!f) return; const rd = new FileReader();
     rd.onload = () => { try { const m2 = JSON.parse(rd.result); if (!Array.isArray(m2.items)) throw 0; mPush(); S.mapEd.m = m2; S.mapEd.sel = null; S.mapEd.ok = false; render(); toast('작업 파일을 열었습니다.'); } catch (_) { toast('지도 작업 파일(.json)이 아닙니다.'); } };
