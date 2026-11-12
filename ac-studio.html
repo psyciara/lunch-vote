@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
 <title>과제 개발 포털</title>
 <!--
-  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (버전 2.0)
+  역량평가 과제 개발 포털 화면 시안. 기준 문서: docs/ac-portal-spec.md (버전 3.0)
   - 화면 원칙은 명세 2-2, 화면 용어는 명세 2-3을 따른다.
   - AI 응답, 음성 인식, 파일 처리는 이 파일 안의 예시 데이터로 흉내 낸다.
   - 예시 과제(한빛시 공영자전거)는 시안용으로 지어낸 내용이다. 실제 과제·양식의 내용은 넣지 않았다.
@@ -569,7 +569,7 @@ const CP_PLAIN = { A1:'예전 과제 풀이 다시 보기', A2:'새 과제 풀�
 const LESSON_ADD = '\n- 자료끼리 같은 숫자(대여소 수 등)가 다르면 표를 기준으로 맞춘다.\n- 역할별 제안서 끝 문장에 "가장 바람직한" 같은 정답 표현을 쓰지 않는다. 입장은 드러내되 결론은 열어 둔다.';
 
 /* =====================================================================
-   2-2. AI 수정 요청 상자 (명세 2-2 원칙 10, 2-5)
+   2-2. AI 수정 요청 상자 (명세 2-2 원칙 10, 3-9)
    - 요청 → 바뀌는 부분 먼저 보여 줌 → [반영] [다시 요청] [취소] → 반영 뒤 [되돌리기]
    ===================================================================== */
 const AI_FN = {};   // 상자별 반영·되돌리기 함수 (화면 다시 그리기와 별도로 보관)
@@ -614,7 +614,7 @@ function aiRequest(id, req, v) {
     AI_FN[id] = r; S.ai[id] = { status:'open', req, v, changes:r.changes, lint:r.lint }; render();
   }, 450);
 }
-function lintSkill(text, files, origName) {   // 명세 3-4 자동 점검
+function lintSkill(text, files, origName) {   // 명세 4-2-4 자동 점검
   const fm = (text.match(/^---\n([\s\S]*?)\n---/) || [])[1] || '';
   const name = ((fm.match(/^name:\s*"?([^"\n]+?)"?\s*$/m)) || [])[1];
   const lines = text.split('\n').length;
@@ -774,11 +774,11 @@ function aiMock(id, req, v) {
 }
 function skillText(p) { if (p.mode === 'skill' && !S.files[p.id]) return ''; return p.mode === 'skill' ? (S.fileDraft[p.id + '|' + S.fileSel[p.id]] ?? S.files[p.id][S.fileSel[p.id]]) : (S.promptDraft[p.id] ?? p.text); }
 function setSkillDraft(p, t) { if (p.mode === 'skill') S.fileDraft[p.id + '|' + S.fileSel[p.id]] = t; else S.promptDraft[p.id] = t; }
-function syncReqs() {   // ③ 보고서 문장을 고치면 ④ 수정 요청 목록에도 반영 (명세 2-5)
+function syncReqs() {   // ③ 보고서 문장을 고치면 ④ 수정 요청 목록에도 반영 (명세 3-9)
   const on = {}; S.reqs.forEach(r => on[r.src] = r.on);
   S.reqs = S.rows.filter(r => r.req).map(r => ({ ...r, on:on[r.src] ?? true }));
 }
-function parseCheckpoints() {   // 명세 3-5: SKILL.md의 ★정지 표시를 확인 단계로
+function parseCheckpoints() {   // 명세 4-2-5: SKILL.md의 ★정지 표시를 확인 단계로
   return S.files[2]['SKILL.md'].split('\n').filter(l => /^#{2,3} .*★정지/.test(l))
     .map(l => { const t = l.replace(/^#+\s*/, '').replace(/\s*★정지.*/, ''); const code = t.split('.')[0];
       return { code, title:t, name:CP_PLAIN[code] || t.replace(/^[A-Z]\d+\.\s*/, ''), text:CP_RESULTS[code] || `${t} 결과 (시안 예시)` }; });
@@ -1078,7 +1078,7 @@ function impactCount(i) {   // 고치면 같은 숫자를 쓰는 다른 항목�
   const gone = i.find.split(/[\s,.:()]+/).filter(w => w.length > 1 && /\d/.test(w) && !i.fix.includes(w));
   return S.blocks.filter(x => x.id !== i.block && gone.some(w => x.text.includes(w))).length;
 }
-function reviewBar() {   // 명세 5-6: AI 제안 검토 모드
+function reviewBar() {   // 명세 3-4-6: AI 제안 검토 모드
   const r = S.review; if (!r) return '';
   if (r.done) return `<div class="rv" role="region" aria-label="제안 검토 결과"><b>검토를 마쳤습니다. ${r.ids.length}건 가운데 ${r.applied.length}건 반영, ${r.ids.length - r.applied.length}건 넘김</b>
     <span class="muted">넘긴 제안은 점검 결과에 남아 있습니다.</span>
@@ -1098,7 +1098,7 @@ function histHTML() {
 }
 
 /* ---------- 목차 확인 (pptx를 처음 열 때) ---------- */
-// API 연결 지점: pptx를 읽어 자료 표기·간지·쪽 번호로 항목을 제안 (명세 5-4)
+// API 연결 지점: pptx를 읽어 자료 표기·간지·쪽 번호로 항목을 제안 (명세 3-4-4)
 function vStruct(n) {
   const tb = S.blocks.filter(b => b.doc === '평가과제'), groups = [...new Set(tb.map(b => b.g))];
   return `<div class="narrow" style="max-width:920px">${guideBox(n)}<h1>목차 확인</h1>
@@ -1373,7 +1373,7 @@ function apply(iid) {
   toast('반영했습니다.', () => { setText(i.block, before, '이용자', '방금 반영한 것 되돌림'); i.status = 'open'; render(); });
 }
 const shortTitle = t => t.replace(/^(자료 \d+)\..*$/, '$1');
-function scopeLabel() {   // 명세 5-2: 고칠 범위 표시
+function scopeLabel() {   // 명세 3-4-2: 고칠 범위 표시
   if (S.scope) return S.scope.label;
   if (S.scopeSel && S.scopeSel.all) return '과제 전체 (평가과제 + 평가자가이드)';
   if (S.scopeSel && S.scopeSel.ids.length) { const t = S.scopeSel.ids.map(id => shortTitle(B(id).title));
@@ -1918,7 +1918,7 @@ function reviewNext() { const r = S.review; r.idx++;
   while (r.idx < r.ids.length && (S.issues.find(x => x.id === r.ids[r.idx]) || {}).status !== 'open') r.idx++;
   if (r.idx >= r.ids.length) { r.done = true; render(); return; } reviewGo(); }
 
-/* ---------- 그림·지도·차트 (명세 5-7) ---------- */
+/* ---------- 그림·지도·차트 (명세 3-5) ---------- */
 // 자료 안의 자리: "[그림] 제목: 설명" 또는 "[차트] 제목"
 const isSlot = l => /^\[(그림|차트)\]/.test(l);
 const figKey = (bid, title) => bid + '|' + title;
@@ -1953,7 +1953,7 @@ const MAP_CATS = {
   road:{ g:'line', label:'일반도로', color:'#c9a46a', w:4 }, highway:{ g:'line', label:'고속도로', color:'#e8590c', w:6 }, rail:{ g:'line', label:'철도', color:'#495057', w:3, dash:'9 6' }, river:{ g:'line', label:'하천', color:'#74a9d8', w:10 },
   zone:{ g:'area', label:'사업 구역 경계', color:'#c2410c', fill:'none', dash:'7 5' }, park:{ g:'area', label:'공원·녹지', color:'#69a35b', fill:'#d4ebc9' }, water:{ g:'area', label:'하천·수면', color:'#74a9d8', fill:'#d1e5f5' }, protect:{ g:'area', label:'규제·보호 구역', color:'#9c36b5', fill:'#efdff5' },
 };
-function mapGroups() {   // 관리자가 끈 범례 항목은 팔레트에서 뺀다(명세 7-2)
+function mapGroups() {   // 관리자가 끈 범례 항목은 팔레트에서 뺀다(명세 4-5-3)
   const ks = Object.keys(MAP_CATS).filter(k => !MAP_CATS[k].off);
   return [['지점', ks.filter(k => ['pt','text'].includes(MAP_CATS[k].g))], ['선', ks.filter(k => MAP_CATS[k].g === 'line')], ['면', ks.filter(k => MAP_CATS[k].g === 'area')]];
 }
@@ -2215,7 +2215,7 @@ Object.assign(ACT, {
   cAddCol: () => { const c = S.chartEd.c; c.head.push('새 값'); c.units.push(''); c.rows.forEach(r => r.push('0')); render(); },
 });
 
-/* ===== 넣기 줄 · 표에서 차트 · AI 자리 제안 (명세 5-7) ===== */
+/* ===== 넣기 줄 · 표에서 차트 · AI 자리 제안 (명세 3-5) ===== */
 // 무엇을 넣을지 먼저 고르고(그림/지도/차트/파일), 그다음 문단 사이의 자리를 고른다. 마우스를 올려야 보이는 버튼은 쓰지 않는다.
 const INS_NAME = { img:'그림', map:'지도', chart:'차트', file:'파일' };
 function insToolHTML(b) {
@@ -2327,7 +2327,7 @@ Object.assign(ACT, {
   propNone: () => { S.figProps.list.forEach(p => { if (p.status === 'open') p.status = 'skip'; }); render(); },
 });
 
-/* ===== 관리자: 그림·지도·차트 양식 (명세 7-2) ===== */
+/* ===== 관리자: 그림·지도·차트 양식 (명세 4-5-3) ===== */
 const G_NAME = { pt:'지점', text:'지점(글자)', line:'선', area:'면' };
 function aFigForm() {
   return `<h2>그림·지도·차트 양식</h2><p class="help">모양(색, 글꼴, 기본값)은 여기서, 그리는 규칙은 지침 관리의 <b>그림·지도·차트(ac-figure)</b>에서 정합니다. 바꾼 값은 새로 만드는 것부터 적용되고, 이미 넣은 것은 [다시 만들기]를 해야 바뀝니다.</p>
